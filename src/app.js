@@ -30,16 +30,19 @@ const FILTERS=[
   ["82A Cool",[0.95,1.00,1.06]],["82B Cool",[0.91,1.00,1.11]],["80B Cool",[0.80,1.00,1.22]],["80A Cool",[0.74,1.00,1.30]]
 ];
 
+// Formats on offer. Super 16 and VHS are built but switched off for now, while Super 8 is being perfected.
+const ACTIVE=["s8"];
+
 /* ---------- state ---------- */
 const S={format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:false};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
 let recording=false,stillEl=null;
 try{
   const saved=JSON.parse(localStorage.getItem("reel8v2")||"{}");
-  if(FORMATS[saved.format]) S.format=saved.format;
+  if(FORMATS[saved.format]&&ACTIVE.includes(saved.format)) S.format=saved.format;
   for(const f in FORMATS){
     if(saved.stockBy&&FORMATS[f].stocks.includes(saved.stockBy[f])) S.stockBy[f]=saved.stockBy[f];
     if(saved.fpsBy&&FORMATS[f].fps.includes(saved.fpsBy[f])) S.fpsBy[f]=saved.fpsBy[f];
@@ -49,17 +52,18 @@ try{
   if([0,1,2,3].includes(saved.side)) S.side=saved.side;
   if(saved.filter>=0&&saved.filter<FILTERS.length) S.filter=saved.filter|0;
   if(saved.zoomSpeed) S.zoomSpeed=Math.min(2,Math.max(.4,+saved.zoomSpeed||1));
-  if(saved.burnOn===true) S.burn=true;
+  if(saved.filmFlare===false) S.burn=false;
+  if(saved.lensFlare===false) S.lens=false;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,burnOn:S.burn}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
 let toastT=0;
 function toast(msg,ms){
-  const t=$("toast");t.textContent=msg;t.classList.remove("off");
+  const t=$("toast");t.textContent=msg;t.classList.remove("off");$("filmTag").classList.add("off");
   clearTimeout(toastT);toastT=setTimeout(()=>t.classList.add("off"),ms||2600);
 }
 
@@ -118,15 +122,99 @@ void main(){
   c+=(s(vUv+uDir*4.)+s(vUv-uDir*4.))*.016;
   gl_FragColor=vec4(c,1.);
 }`;
+// 2b. lens flare, step 1: keep only what is burnt out to white (lamps, the sun, glints), shrunk 4 times
+const FS_HOT=COMMON+`uniform sampler2D uTex;uniform vec2 uPx;
+vec4 hot(vec2 q){
+  vec3 c=texture2D(uTex,q).rgb;
+  float mx=max(c.r,max(c.g,c.b)),lum=dot(c,vec3(.299,.587,.114));
+  float h=smoothstep(.955,.995,mx)*smoothstep(.60,.85,lum);
+  return vec4(c*h,h);
+}
+void main(){
+  gl_FragColor=(hot(vUv+uPx*vec2(-1.,-1.))+hot(vUv+uPx*vec2(1.,-1.))+hot(vUv+uPx*vec2(-1.,1.))+hot(vUv+uPx*vec2(1.,1.)))*.25;
+}`;
+// how bright the scene is as a whole (8 x 8 samples)
+const FS_LUM=COMMON+`uniform sampler2D uTex;
+void main(){
+  float s=0.;
+  for(int j=0;j<4;j++)for(int i=0;i<4;i++){
+    vec2 o=(vec2(float(i),float(j))+.5)/4.-.5;
+    s+=dot(texture2D(uTex,vUv+o/8.).rgb,vec3(.299,.587,.114));
+  }
+  gl_FragColor=vec4(vec3(s/16.),1.);
+}`;
+// 2c. lens flare, step 2: the light a real lens adds on its own when a lamp or the sun is in the shot.
+// For each light: a wide soft glow, a few faint uneven rays, and "ghost" spots strung along the line through the middle of the picture.
+// The spots are diamond-shaped because many Super 8 cameras have a two-blade iris. Their places, sizes and colours are fixed, as in one real lens.
+const FS_FLARE=COMMON+`uniform vec4 uS[3],uC[3];uniform vec2 uAsp;uniform float uA,uSeedF;
+float lp(vec2 q,float e){q=abs(q)+1e-5;return pow(pow(q.x,e)+pow(q.y,e),1./e);}
+vec3 ghost(vec2 p,vec2 s,float k,float rad,vec3 col,float amp,float soft,float rim){
+  vec2 q=(p+s*k)/rad;
+  float m=lp(q,1.5);
+  vec3 e=1.-smoothstep(vec3(1.035,1.,.965)-soft,vec3(1.035,1.,.965)+soft,vec3(m));   // each colour a hair different in size: a faint coloured rim
+  float mm=min(m,1.);
+  float side=1.+.22*dot(q,normalize(s+1e-4));                                         // a little brighter on one side, as real ones are
+  return mix(col,vec3(1.),.35)*e*mix(1.-.25*mm*mm,.45+.55*mm*mm,rim)*side*amp;
+}
+void main(){
+  vec2 p=(vUv-.5)*uAsp;
+  vec3 f=vec3(0.);
+  for(int i=0;i<3;i++){
+    vec4 S=uS[i];
+    if(S.z<.003) continue;
+    vec3 col=uC[i].rgb;
+    vec2 s=(S.xy-.5)*uAsp;
+    vec2 d=p-s;float r=length(d);float P=S.z;
+    float wide=P*min(uA,1.);                                                          // the wide haze needs a strong light in a bright scene; in the dark it would fog the whole picture
+    float glow=.55*sqrt(P)*exp(-r/.035)+wide*(.26*exp(-r/.10)+.085/(1.+pow(r/.20,2.)));
+    float th=atan(d.y,d.x);
+    float ray=.32*pow(.5+.5*cos(4.*th+.5),12.)+.38*pow(.5+.5*cos(2.*th+2.2),7.)+.30*pow(.5+.5*cos(6.*th+4.1),16.)
+             +.22*pow(.5+.5*cos(3.*th+1.9),9.)+.18*pow(.5+.5*cos(5.*th+5.2),11.)
+             +.22*pow(.5+.5*cos(10.*th+1.),20.)+.16*pow(.5+.5*cos(23.*th+3.3),10.)+.10*pow(.5+.5*cos(37.*th+.7),8.);
+    float rays=ray*.20*exp(-r/(.05+.20*P))*(1.-exp(-r/.014));
+    f+=col*vec3(1.,.90,.74)*(glow+rays)*P*uA;
+    f+=col*vec3(1.,.86,.66)*.026*P*wide*uA;
+    float G=pow(P,1.3)*smoothstep(.08,.35,P)*S.w*uA*smoothstep(.04,.2,length(s));   // glints are too weak to throw ghost spots
+    if(G>.002){
+      f+=G*col*( ghost(p,s, .42,.034,vec3(1.,.66,.32),.32,.38,.0)
+               + ghost(p,s, .78,.058,vec3(.45,.85,.60),.15,.34,.7)
+               + ghost(p,s,1.00,.022,vec3(1.,.87,.60),.27,.50,.0)
+               + ghost(p,s,1.38,.092,vec3(.60,.52,1.),.11,.30,.8)
+               + ghost(p,s,-.35,.027,vec3(1.,.56,.28),.16,.42,.0)
+               + ghost(p,s,-.62,.105,vec3(.40,.74,.90),.065,.36,.5)
+               + ghost(p,s,1.90,.150,vec3(1.,.74,.46),.05,.40,.9) );
+    }
+  }
+  f=min(f,vec3(4.));
+  gl_FragColor=vec4(sqrt(f/4.)+(h1(gl_FragCoord.xy+uSeedF)-.5)/255.,1.);
+}`;
 // 3a. film
-const FS_FILM=COMMON+`uniform sampler2D uP,uGlow,uNoise,uDustTex;
-uniform vec4 uDp[4],uDq[4],uSc[6],uSd[6];
+const FS_FILM=COMMON+`uniform sampler2D uP,uGlow,uNoise,uDustTex,uFlare;
+uniform vec4 uDp[4],uDq[4],uSc[6],uSd[6],uLk,uLk2;
+uniform vec3 uLkWb;
 uniform vec2 uOut,uWeave,uOff1,uOff2;
 uniform vec3 uWb,uBlack,uWhite,uGam,uKc;
-uniform float uSeed,uEv,uSat,uK,uGrain,uGs,uHal,uBloom,uBw,uFlicker,uOver,uSide,uFmt,uVig,uCa,uCorner,uT,uE,uBurn,uDsz,uGain,uOff,uSh,uHd,uVexp;
+uniform float uSeed,uEv,uSat,uK,uGrain,uGs,uHal,uBloom,uBw,uFlicker,uOver,uSide,uFmt,uVig,uCa,uCorner,uT,uE,uFl,uFlash,uDsz,uGain,uOff,uSh,uHd,uVexp;
 float sig(float x,float k){
   float a=1./(1.+exp(k*.5)),b=1./(1.+exp(-k*.5));
   return (1./(1.+exp(-k*(x-.5)))-a)/(b-a);
+}
+// film flare: stray light that reached the film itself, in the cartridge or at the gate. It comes in from the film's edges.
+// A little light fogs the red layer first, more reaches green, a lot reaches blue: red, then orange, then yellow, then white.
+vec3 leak(vec2 q){
+  float sd=uLk.w;
+  float n1=texture2D(uNoise,vec2(q.y*.021+sd,sd*.37)).r;
+  float n2=texture2D(uNoise,vec2(q.x*.016+sd*.61,q.y*.030+sd*.13)).g;
+  float n3=texture2D(uNoise,vec2(q.x*.07+sd*.29,q.y*.006+sd*.83)).b;
+  float xn=max(q.x,-.25),xf=max(1.-q.x,-.25);
+  float bump=1.+1.4*exp(-pow((q.y-uLk.y)/.28,2.));
+  float E=uLk.x*exp(-xn/max(uLk.z*(.35+1.3*n1)*bump,.02));
+  E+=uLk2.y*exp(-xf/max(uLk.z*(.35+1.3*(1.-n1))*bump,.02));
+  float xh=uLk.x>=uLk2.y?xn:xf;
+  E+=uLk2.z*exp(-pow(xh/.16,2.)-pow((q.y-uLk2.w)/.11,2.));
+  E*=.55+.9*n2+.35*(n3-.5);
+  E+=uLk2.x*(.8+.4*n2);
+  return 2.6*(1.-exp(-max(E,0.)*vec3(3.0,1.1,.5)));
 }
 void main(){
   float W=uOut.x,H=uOut.y,m=min(W,H);
@@ -166,13 +254,12 @@ void main(){
   float gl1=dot(gw,vec3(.3,.5,.2));
   float hm=exp(-dot(c,vec3(.3,.5,.2))*10.);
   c+=mix(vec3(1.,.17,.045),vec3(.5),uBw)*gl1*uHal*hm+gw*uBloom;
+  if(uFl>.5){vec3 fl=texture2D(uFlare,uv).rgb;c+=fl*fl*4.;}      // lens flare is light in the lens: it goes through the film like the rest of the picture
   float vg=clamp(1.-uVig*pow(min(r2,1.),uVexp),0.,1.);
-  c*=exp2(uEv)*uFlicker*vg;
+  c*=exp2(uEv)*uFlicker*vg*uFlash;
   c*=uWb;
-  if(uBurn>.002){
-    float sh=smoothstep(1.-uBurn*1.5,1.25-uBurn*.5,(1.-pl.x)+.16*sin(pl.y*6.+uSeed));
-    c+=vec3(3.2,1.,.2)*sh*uBurn*1.6+c*uBurn*1.4;
-  }
+  vec3 lk=vec3(0.);
+  if(uLk.x+uLk2.x+uLk2.y>.001){lk=leak(pl);c+=lk*uLkWb;}
   float l=dot(c,vec3(.2126,.7152,.0722));
   c=mix(vec3(l),c,uSat);
   c*=1.-.14*clamp(length(c-l)/(l+.05),0.,1.)*(1.-uBw);
@@ -234,6 +321,7 @@ void main(){
       dh=rr(vec2(L.x,fy2),vec2(uT*.52,rsz.y+gap*.5),vec2(.047,.032)*m,.011*m);
     }
     base+=vec3(1.,.5,.2)*.5*exp(-max(dh,0.)/(.014*m));
+    base+=mix(lk,vec3(dot(lk,vec3(.3,.5,.2))),uBw)*.42;
     base=mix(base,vec3(1.,.97,.9)*uFlicker,1.-smoothstep(-2.,2.,dh));
     outc=mix(base,g,inside);
   }
@@ -443,10 +531,150 @@ function rollDamage(amount){
   SCRP[20]=.03+rr()*.94;SCRP[21]=rr()*.6;SCRP[22]=.12+rr()*.28;SCRP[23]=on?.7+rr()*.25:0;
   SCRQ[20]=1;SCRQ[21]=rr()*50;SCRQ[22]=rr()<.5?1:2;
 }
+/* ---------- lens flare: find the lights in the picture ---------- */
+const LF={ok:true,tr:[],buf:null,lab:null,stack:null,mem:null,lum:new Uint8Array(256),day:.6,cost:0,skip:0,every:1,
+  k(v){return 1-Math.pow(1-v,this.every);},        // one smoothing step, made bigger when the finder only runs on every third frame
+  S:new Float32Array(12),C:new Float32Array(12)};
+function findLights(w,h,pShort,zoom){
+  // reads a tiny copy of the picture in which only burnt-out areas are left, and groups them into separate lights
+  const n=w*h;
+  if(!LF.buf||LF.buf.length!==n*4){LF.buf=new Uint8Array(n*4);LF.lab=new Uint8Array(n);LF.stack=new Int32Array(n);LF.mem=new Int32Array(n);}
+  const a=LF.buf,lab=LF.lab,st=LF.stack,mem=LF.mem;
+  gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,a);
+  lab.fill(0);
+  const out=[],TH=3,cell=4/pShort;                  // one cell is 4 picture pixels; sizes below are shares of the picture's short side
+  const ss=(t,e0,e1)=>{const u=Math.min(1,Math.max(0,(t-e0)/(e1-e0)));return u*u*(3-2*u);};
+  for(let i=0;i<n;i++){
+    const v=a[i*4+3];
+    if(v<TH||lab[i]) continue;
+    let sp=0,nc=0;st[sp++]=i;lab[i]=1;
+    let M=0,sx=0,sy=0,sxx=0,syy=0,cr=0,cg=0,cb=0;
+    while(sp){
+      const j=st[--sp],x=j%w,y=(j/w)|0,m=a[j*4+3]/255;
+      mem[nc++]=j;
+      M+=m;sx+=m*x;sy+=m*y;sxx+=m*x*x;syy+=m*y*y;cr+=a[j*4];cg+=a[j*4+1];cb+=a[j*4+2];
+      if(x>0&&!lab[j-1]&&a[(j-1)*4+3]>=TH){lab[j-1]=1;st[sp++]=j-1;}
+      if(x<w-1&&!lab[j+1]&&a[(j+1)*4+3]>=TH){lab[j+1]=1;st[sp++]=j+1;}
+      if(y>0&&!lab[j-w]&&a[(j-w)*4+3]>=TH){lab[j-w]=1;st[sp++]=j-w;}
+      if(y<h-1&&!lab[j+w]&&a[(j+w)*4+3]>=TH){lab[j+w]=1;st[sp++]=j+w;}
+    }
+    if(M<.6) continue;
+    const mx=sx/M,my=sy/M,vx=Math.max(sxx/M-mx*mx,0)+.09,vy=Math.max(syy/M-my*my,0)+.09;
+    let r2=0,edge=false,x0=w,x1=-1,y0=h,y1=-1,inb=0;
+    for(let k=0;k<nc;k++){
+      const j=mem[k];if(a[j*4+3]<64) continue;      // the faint fringe does not count for the outline
+      const x=j%w,y=(j/w)|0,dx=x-mx,dy=y-my;
+      if(dx*dx+dy*dy>r2) r2=dx*dx+dy*dy;
+      if(x===0||y===0||x===w-1||y===h-1) edge=true;
+      if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;inb+=a[j*4+3]/255;
+    }
+    const boxFill=x1>=x0?inb/((x1-x0+1)*(y1-y0+1)):0;   // a full box means straight sides: a window or a screen, not the sun
+    const d=2*Math.sqrt(M/Math.PI)*cell/zoom;       // how wide the light is, as if it were a round disc
+    const el=Math.sqrt(Math.max(vx,vy)/Math.min(vx,vy));
+    const circ=M/(Math.PI*Math.pow(Math.sqrt(r2)+.35,2));
+    // A burnt-out spot counts as a light when it is round: a lamp, a bulb, the sun with its glare. Tiny ones are too small to judge, so they count too.
+    // Straight-sided, long or ragged shapes are windows, screens, sky or strip lights: they haze the picture but make no glow point and no spots.
+    // One that is cut off by the edge of the picture gets half strength, because its true shape cannot be seen.
+    const notBox=(1-ss(el,1.4,1.9))*(1-ss(boxFill,.87,.95));
+    const round=edge?.7*notBox:ss(circ,.5,.68)*notBox;
+    const small=ss(circ,.3,.45)*(1-ss(el,1.9,2.6));             // small lights often have spikes, so they need not be as neat, but ragged bits of white are out
+    const tiny=d<.012?1:(1-ss(d,.02,.035))*small;
+    const pl=Math.max(tiny,round)*(1-ss(d,.32,.46));
+    const P=Math.min(1.15,Math.pow(d/.065,1.1))*pl;
+    const gs=edge?notBox:pl*(1-ss(el,1.8,3));
+    const cm=Math.max(cr,cg,cb,1);
+    out.push({x:(mx+.5)/w,y:(my+.5)/h,P,gs,r:cr/cm,g:cg/cm,b:cb/cm,d,circ,el,edge,boxFill});
+  }
+  LF.found=out;
+  return out;
+}
+function trackLights(found){
+  // follows up to three lights from frame to frame, so their flare fades in and out instead of popping
+  const tr=LF.tr;
+  for(const t of tr) t.hit=null;
+  found.sort((p,q)=>q.P-p.P);
+  for(const f of found){
+    let best=null,bd=.14;
+    for(const t of tr){if(t.hit) continue;const d=Math.hypot(t.x-f.x,t.y-f.y);if(d<bd){bd=d;best=t;}}
+    if(best){best.hit=f;continue;}
+    if(f.P<.03) continue;
+    if(tr.length<3) tr.push({x:f.x,y:f.y,P:0,gs:f.gs,r:f.r,g:f.g,b:f.b,hit:f});
+    else{
+      let wk=tr[0];for(const t of tr) if(t.P<wk.P) wk=t;
+      if(!wk.hit&&f.P>wk.P*2){wk.x=f.x;wk.y=f.y;wk.P=0;wk.gs=f.gs;wk.r=f.r;wk.g=f.g;wk.b=f.b;wk.hit=f;}
+    }
+  }
+  for(let i=tr.length-1;i>=0;i--){
+    const t=tr[i],f=t.hit;
+    if(f){
+      const kp=LF.k(.7),kc=LF.k(.4);
+      t.x+=(f.x-t.x)*kp;t.y+=(f.y-t.y)*kp;
+      t.P+=(f.P-t.P)*LF.k(f.P>t.P?.55:.35);t.gs+=(f.gs-t.gs)*kc;
+      t.r+=(f.r-t.r)*kc;t.g+=(f.g-t.g)*kc;t.b+=(f.b-t.b)*kc;
+    }else{t.P*=Math.pow(.55,LF.every);if(t.P<.01) tr.splice(i,1);}
+  }
+}
+function lensFlarePass(Pt,pw,ph,pShort){
+  // returns true when there is flare light to add this frame (it is then in the "FL" picture)
+  const t0=performance.now();
+  if(LF.skip>0) LF.skip--;
+  else{
+    const w1=Math.ceil(pw/4),h1=Math.ceil(ph/4);
+    const H1=target("H1",w1,h1),LM=target("LM",8,8);     // made before anything is bound: making one re-binds the active texture
+    bind(0,Pt.tex);use(PR.hot,{uTex:{tex:0},uPx:[1/pw,1/ph]});draw(H1);
+    // is this a bright scene (day, lit room) or a dark one (night)? the darker three quarters of the picture decide
+    bind(0,Pt.tex);use(PR.lum,{uTex:{tex:0}});draw(LM);
+    gl.readPixels(0,0,8,8,gl.RGBA,gl.UNSIGNED_BYTE,LF.lum);
+    const lv=[];for(let i=0;i<64;i++) lv.push(Math.pow(LF.lum[i*4]/255,2.2));
+    lv.sort((p,q)=>p-q);let ls=0;for(let i=0;i<48;i++) ls+=lv[i];
+    // Flare is a share of the light in the lens, so it is scaled to the scene: strong in daylight, slight at night (where the dark would show every trace)
+    LF.day+=(Math.min(1.15,Math.max(.08,Math.pow(ls/48/.2,1.6)))-LF.day)*LF.k(.3);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,H1.fb);
+    trackLights(findLights(w1,h1,pShort,S.zoom));
+    LF.cost+=(performance.now()-t0-LF.cost)*.1;
+    LF.every=LF.cost>7?3:1;LF.skip=LF.every-1;      // slow phone: look for lights on every third frame only
+  }
+  let any=false;
+  for(let i=0;i<3;i++){
+    const t=LF.tr[i];
+    LF.S[i*4]=t?t.x:0;LF.S[i*4+1]=t?t.y:0;LF.S[i*4+2]=t?t.P:0;LF.S[i*4+3]=t?t.gs:0;
+    LF.C[i*4]=t?t.r:1;LF.C[i*4+1]=t?t.g:1;LF.C[i*4+2]=t?t.b:1;LF.C[i*4+3]=1;
+    if(t&&t.P>.003) any=true;
+  }
+  if(!any) return false;
+  const fw=Math.max(16,pw>>1),fh=Math.max(16,ph>>1),FL=target("FL",fw,fh),mn=Math.min(pw,ph);
+  use(PR.flare,{uS:LF.S,uC:LF.C,uAsp:[pw/mn,ph/mn],uA:LF.day,uSeedF:Math.random()*50});draw(FL);
+  return true;
+}
+
+/* ---------- film flare: a burst of stray light on the film, strongest on the first frames and gone within about a second ---------- */
+const FLR={n:1e9,len:0,amp:0,y:.5,reach:.3,white:0,far:false,flip:false,flash:1,LK:new Float32Array(4),LK2:new Float32Array(4),mul:1};
+function startFilmFlare(k){
+  FLR.n=0;FLR.len=Math.round(6+(6+12*Math.random())*k);
+  FLR.amp=(.6+.8*Math.random())*k;
+  FLR.white=k>.6&&Math.random()<.6?1+Math.floor(Math.random()*3):0;   // some rolls open with a few frames fogged right over
+  FLR.y=Math.random();FLR.reach=.12+(.08+.38*Math.random())*k;
+  FLR.far=Math.random()<.3;FLR.flip=Math.random()<.3;
+  FLR.flash=1+(1.5+2.5*Math.random())*Math.min(1,.4+k);              // the first frame of a shot gets too much light while the motor runs up
+}
+function rollFilmFlare(){
+  const r=Math.random,LK=FLR.LK,LK2=FLR.LK2;
+  LK[0]=LK[1]=LK[2]=LK[3]=0;LK2[0]=LK2[1]=LK2[2]=LK2[3]=0;FLR.mul=1;
+  if(FLR.n>=FLR.len) return;
+  const t=FLR.n/FLR.len,env=Math.pow(1-t,1.5);
+  const a=FLR.amp*env*(.3+.7*r())*(r()<.12?.15:1)*2.6;                // every frame gets a different dose; now and then one is nearly clean
+  const near=FLR.flip?(FLR.far?a*.5*r():0):a,far=FLR.flip?a:(FLR.far?a*.5*r():0);
+  LK[0]=near;LK[1]=FLR.y+(r()-.5)*.6;LK[2]=FLR.reach*(.45+.8*env)*(.7+.6*r());LK[3]=r()*200;
+  LK2[0]=FLR.n<FLR.white?(3.2-FLR.n)*(.6+.4*r()):a*.05*r();LK2[1]=far;LK2[2]=r()<.5?a*.9*r():0;LK2[3]=r();
+  FLR.mul=FLR.n===0?FLR.flash:FLR.n===1?1+(FLR.flash-1)*.3:FLR.n===2?1+(FLR.flash-1)*.08:1;
+  FLR.n++;
+}
 function initGL(){
   if(!gl) return false;
-  PR.prep=makeProg(FS_PREP);PR.blur=makeProg(FS_BLUR);PR.film=makeProg(FS_FILM);PR.vhs=makeProg(FS_VHS);
-  if(!PR.prep||!PR.blur||!PR.film||!PR.vhs) return false;
+  PR.prep=makeProg(FS_PREP);PR.blur=makeProg(FS_BLUR);PR.film=makeProg(FS_FILM);
+  if(!PR.prep||!PR.blur||!PR.film) return false;          // the tape look is only built when it is first used
+  PR.hot=makeProg(FS_HOT);PR.flare=makeProg(FS_FLARE);PR.lum=makeProg(FS_LUM);
+  if(!PR.hot||!PR.flare||!PR.lum) LF.ok=false;             // no lens flare on this phone; everything else still works
   const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
   gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
@@ -472,7 +700,7 @@ function pictureGeom(F){
   const rw=D[0]-t-e*.7,rh=D[1]-2*e;
   return {a:S.side<2?rw/rh:rh/rw,t,e};
 }
-const dyn={burn:0,glitch:0,trackY:1.2,breath:0};
+const dyn={glitch:0,trackY:1.2,breath:0};
 let lastFrame=0,lastTick=0,zoomDir=0,frames=0,snapCb=null;
 const R=Math.random;
 function tick(now){
@@ -505,6 +733,8 @@ function tick(now){
   draw(Pt);
   const off1=[R(),R()],off2=[R(),R()],seed=R()*10;
   if(isVhs){
+    if(!PR.vhs) PR.vhs=makeProg(FS_VHS);
+    if(!PR.vhs) return;
     const tp=TAPES[S.stock];
     dyn.glitch*=.86;
     const wear=Math.min(1,tp.wear+dyn.glitch);
@@ -524,19 +754,21 @@ function tick(now){
     const gw=Math.max(16,pw>>1),gh=Math.max(16,ph>>1),A=target("GA",gw,gh),B=target("GB",gw,gh),hs=F.halo*gw/300;
     bind(0,Pt.tex);use(PR.blur,{uTex:{tex:0},uDir:[hs/gw,0],uThr:.38});draw(A);
     bind(0,A.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,hs/gh],uThr:0});draw(B);
-    // film movement and damage that carries from frame to frame
-    dyn.burn*=.66;if(dyn.burn<.004) dyn.burn=0;
+    // pass 4: lens flare from the lamps and the sun in the picture
+    const hasFl=S.lens&&LF.ok&&lensFlarePass(Pt,pw,ph,F.pShort);
+    // film movement, flare and damage that carry from frame to frame
     dyn.breath+=(R()-.5)*.006;dyn.breath*=.94;
-    rollDamage(F.dmg);
+    rollDamage(F.dmg);rollFilmFlare();
     const wv=F.weave;
-    bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);
-    use(PR.film,{uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uDp:DUSTP,uDq:DUSTQ,uSc:SCRP,uSd:SCRQ,uDsz:F.dsz,uOut:[cv.width,cv.height],
+    bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);
+    use(PR.film,{uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:st.wb,uFlash:FLR.mul,
+      uDp:DUSTP,uDq:DUSTQ,uSc:SCRP,uSd:SCRQ,uDsz:F.dsz,uOut:[cv.width,cv.height],
       uWeave:[((R()-.5)*.0012+Math.sin(now/1100)*.0006)*wv,((R()-.5)*.0014+Math.sin(now/700)*.0008)*wv],
       uOff1:off1,uOff2:off2,uWb:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uBlack:st.black,uWhite:st.white,
       uSeed:seed,uEv:S.ev,uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uVexp:F.vexp,uGrain:st.grain*F.grainMul,uGs:F.gs*Math.min(cv.width,cv.height)/1080,
       uHal:st.hal,uBloom:st.bloom,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1),
       uOver:S.overscan?1:0,uSide:S.overscan?S.side:0,uFmt:S.format==="s16"?1:0,uVig:F.vig,uCa:F.ca,uCorner:F.corner,
-      uT:geo.t,uE:geo.e,uBurn:dyn.burn});
+      uT:geo.t,uE:geo.e});
     draw(null);
   }
   frames++;
@@ -658,7 +890,8 @@ async function beginRec(){
   rec.onstop=finishRec;
   rec.start(1000);
   recording=true;recStart=performance.now();
-  if(S.format==="vhs") dyn.glitch=1.2; else if(S.burn) dyn.burn=1;
+  if(S.format==="vhs") dyn.glitch=1.2;
+  else if(S.burn){const u=Math.random();startFilmFlare(u<.2?1:u<.65?.55:.22);}   // like real rolls: sometimes strong, mostly modest, sometimes barely there
   $("recLamp").hidden=false;$("recTime").textContent="00:00";
   recTimer=setInterval(()=>{
     const s=Math.floor((performance.now()-recStart)/1000);
@@ -777,8 +1010,9 @@ function paint(){
   for(const b of $("sideSeg").children) b.setAttribute("aria-pressed",+b.dataset.v===S.side);
   $("sideSeg").classList.toggle("dim",!S.overscan||isVhs);
   $("overSwitch").setAttribute("aria-checked",S.overscan&&!isVhs);
-  $("overSwitch").disabled=isVhs;$("burnSwitch").disabled=isVhs;
+  $("overSwitch").disabled=isVhs;$("burnSwitch").disabled=isVhs;$("lensSwitch").disabled=isVhs;
   $("burnSwitch").setAttribute("aria-checked",S.burn&&!isVhs);
+  $("lensSwitch").setAttribute("aria-checked",S.lens&&!isVhs);
   $("filmOnlyNote").hidden=!isVhs;
   $("filterRange").value=S.filter;$("filterOut").textContent=FILTERS[S.filter][0];
   $("speedRange").value=S.zoomSpeed;$("speedOut").textContent=S.zoomSpeed.toFixed(1)+"×";
@@ -786,7 +1020,7 @@ function paint(){
 function closeDrawer(){$("stockDrawer").hidden=true;$("stockBtn").setAttribute("aria-expanded","false");}
 $("stockBtn").onclick=()=>{const d=$("stockDrawer");d.hidden=!d.hidden;$("stockBtn").setAttribute("aria-expanded",String(!d.hidden));};
 $("formatRow").onclick=e=>{
-  const v=e.target.dataset&&e.target.dataset.v;if(!v||!FORMATS[v]||recording||v===S.format) return;
+  const v=e.target.dataset&&e.target.dataset.v;if(!v||!FORMATS[v]||!ACTIVE.includes(v)||recording||v===S.format) return;
   S.format=v;remember();buildStocks();paint();
 };
 $("evDown").onclick=()=>{S.ev=Math.max(-3,Math.round((S.ev-.5)*2)/2);paint();};
@@ -815,6 +1049,41 @@ function hold(btn,dir){
 }
 hold($("zoomW"),-1);hold($("zoomT"),1);
 
+/* ---------- swipe on the viewfinder to change film ---------- */
+let tagT=0;
+function showFilmTag(dir){
+  const tag=$("filmTag"),list=FORMATS[S.format].stocks,dots=$("filmTagDots");
+  $("filmTagName").textContent=S.stock;
+  if(dots.children.length!==list.length){dots.textContent="";for(let k=0;k<list.length;k++) dots.append(document.createElement("i"));}
+  for(let k=0;k<list.length;k++) dots.children[k].classList.toggle("on",list[k]===S.stock);
+  $("toast").classList.add("off");
+  tag.classList.remove("off","inL","inR");
+  void tag.offsetWidth;                                   // restart the slide-in
+  tag.classList.add(dir>0?"inR":"inL");                   // the name comes in from the side the finger started on
+  clearTimeout(tagT);tagT=setTimeout(()=>tag.classList.add("off"),1100);
+}
+function stepStock(dir){
+  if(recording){toast("Stop recording to change film.");return;}
+  const list=FORMATS[S.format].stocks,n=list.length;
+  S.stockBy[S.format]=list[(list.indexOf(S.stock)+dir+n)%n];
+  remember();paint();showFilmTag(dir);
+}
+{
+  const fd=$("finder");let sw=null;
+  fd.addEventListener("pointerdown",e=>{
+    if(!e.isPrimary||e.button>0||(e.target.closest&&e.target.closest(".card,.chip"))){sw=null;return;}   // a second finger cancels
+    sw={id:e.pointerId,x:e.clientX,y:e.clientY,t:e.timeStamp};
+    try{fd.setPointerCapture(e.pointerId);}catch(x){}
+  });
+  fd.addEventListener("pointerup",e=>{
+    if(!sw||e.pointerId!==sw.id) return;
+    const dx=e.clientX-sw.x,dy=e.clientY-sw.y,dt=e.timeStamp-sw.t;sw=null;   // the finger's own timing, so a busy phone cannot spoil a swipe
+    if(Math.abs(dx)<40||Math.abs(dx)<Math.abs(dy)*1.5||dt>1000) return;     // a clear sideways flick only
+    stepStock(dx<0?1:-1);                                                   // finger moves left: next film
+  });
+  fd.addEventListener("pointercancel",()=>{sw=null;});
+}
+
 $("settingsBtn").onclick=()=>{closeDrawer();$("settings").hidden=false;$("settingsClose").focus();};
 $("settingsClose").onclick=()=>{$("settings").hidden=true;$("settingsBtn").focus();};
 $("galleryBtn").onclick=()=>{closeDrawer();$("gallery").hidden=false;$("galleryClose").focus();};
@@ -826,7 +1095,8 @@ $("facingSeg").onclick=e=>{
   if(mode==="live"&&!recording) startLive(false);
 };
 $("overSwitch").onclick=()=>{if(recording){toast("Stop recording to change this.");return;}S.overscan=!S.overscan;remember();paint();};
-$("burnSwitch").onclick=()=>{S.burn=!S.burn;remember();paint();};
+$("burnSwitch").onclick=()=>{S.burn=!S.burn;remember();paint();if(S.burn&&!recording) startFilmFlare(.8);};   // switching it on shows one, so you can see what it is
+$("lensSwitch").onclick=()=>{S.lens=!S.lens;LF.tr.length=0;remember();paint();};
 $("sideSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(v===undefined||S.format==="vhs") return;
   if(recording){toast("Stop recording to change this.");return;}
@@ -835,6 +1105,8 @@ $("sideSeg").onclick=e=>{
 $("filterRange").oninput=e=>{S.filter=+e.target.value;remember();paint();};
 $("speedRange").oninput=e=>{S.zoomSpeed=+e.target.value;remember();paint();};
 document.addEventListener("keydown",e=>{
+  if((e.key==="ArrowLeft"||e.key==="ArrowRight")&&$("settings").hidden&&$("gallery").hidden
+     &&!(e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))){stepStock(e.key==="ArrowRight"?1:-1);return;}
   if(e.key!=="Escape") return;
   if(!$("settings").hidden) $("settingsClose").click();
   else if(!$("gallery").hidden) $("galleryClose").click();
@@ -843,12 +1115,14 @@ document.addEventListener("keydown",e=>{
 
 /* ---------- start ---------- */
 $("shootInput").setAttribute("capture",S.facing);
+for(const b of $("formatRow").children) b.hidden=!ACTIVE.includes(b.dataset.v);
+$("formatRow").hidden=ACTIVE.length<2;
 buildStocks();paint();renderClips();
 glOK=initGL();
 if(!glOK) toast("This browser cannot draw the film look (WebGL is off).",6000);
 requestAnimationFrame(tick);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
+window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,startFilmFlare,dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";$("srcCard").hidden=true;},snap(){return new Promise(r=>{snapCb=r;});}};
 })();

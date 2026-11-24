@@ -69,7 +69,7 @@ button.win:disabled{opacity:.45}
 .drawer button[aria-pressed="true"]{background:var(--lamp);color:var(--ink)}
 
 /* ---------- viewfinder ---------- */
-.finder{position:relative;flex:1;min-height:0;background:#000}
+.finder{position:relative;flex:1;min-height:0;background:#000;touch-action:none}
 #view{width:100%;height:100%;display:block;object-fit:contain}
 .rec{position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;
   background:rgba(0,0,0,.6);font-weight:600;font-variant-numeric:tabular-nums}
@@ -92,6 +92,19 @@ button.win:disabled{opacity:.45}
 .toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:82%;padding:10px 14px;border-radius:8px;
   background:rgba(0,0,0,.82);text-align:center;line-height:1.45;pointer-events:none;transition:opacity .25s}
 .toast.off{opacity:0}
+/* film name, shown for a moment after a swipe on the viewfinder */
+.filmtag{position:absolute;left:50%;top:20%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:9px;
+  padding:10px 20px 12px;border-radius:9px;background:rgba(0,0,0,.74);box-shadow:inset 0 0 0 1px rgba(255,182,72,.22);
+  pointer-events:none;transition:opacity .4s}
+.filmtag.off{opacity:0}
+.filmtag b{font-family:var(--display);font-weight:800;font-size:42px;line-height:1;letter-spacing:.06em;color:var(--lamp);white-space:nowrap}
+.filmtag span{display:flex;gap:7px}
+.filmtag i{width:6px;height:6px;border-radius:50%;background:#5c584f}
+.filmtag i.on{background:var(--lamp)}
+.filmtag.inL{animation:tagL .2s ease-out}
+.filmtag.inR{animation:tagR .2s ease-out}
+@keyframes tagL{from{transform:translate(calc(-50% - 30px),-50%);opacity:0}}
+@keyframes tagR{from{transform:translate(calc(-50% + 30px),-50%);opacity:0}}
 
 /* ---------- grip ---------- */
 .grip{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 16px 20px;
@@ -149,7 +162,7 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
 .note{margin:0;font-size:12px;line-height:1.5;color:#b9b8b3}
 .srcvid{position:absolute;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none}
 @supports (height:100dvh){html,body{height:100dvh}}
-@media (prefers-reduced-motion:reduce){.rec i{animation:none}*{transition:none !important}}
+@media (prefers-reduced-motion:reduce){.rec i,.filmtag{animation:none !important}*{transition:none !important}}
 @media (max-height:620px){.grip{padding:10px 16px 12px}.trigger{width:76px;height:76px}.trigger b{width:54px;height:54px}}
 @media (orientation:landscape) and (max-height:540px){
   #cam{max-width:none;flex-direction:row}
@@ -215,6 +228,7 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
         <button class="second" id="liveBtn" hidden>Try live camera</button>
       </div>
     </div>
+    <div class="filmtag off" id="filmTag" role="status"><b id="filmTagName">200T</b><span id="filmTagDots" aria-hidden="true"></span></div>
     <div class="toast off" id="toast" role="status"></div>
   </main>
 
@@ -242,10 +256,13 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
       <button class="switch" id="overSwitch" role="switch" aria-checked="false" aria-labelledby="overLabel"></button>
     </div>
     <div class="seg dim" id="sideSeg"><button data-v="2">Top</button><button data-v="3">Bottom</button><button data-v="0">Left</button><button data-v="1">Right</button></div>
-    <div class="field"><span id="burnLabel">Film burn at start of shot</span>
+    <div class="field"><span id="lensLabel">Lens flare (lamps and sun)</span>
+      <button class="switch" id="lensSwitch" role="switch" aria-checked="true" aria-labelledby="lensLabel"></button>
+    </div>
+    <div class="field"><span id="burnLabel">Film flare at start of shot</span>
       <button class="switch" id="burnSwitch" role="switch" aria-checked="true" aria-labelledby="burnLabel"></button>
     </div>
-    <p class="note" id="filmOnlyNote" hidden>Overscan and film burn are for film only. They are off for VHS.</p>
+    <p class="note" id="filmOnlyNote" hidden>Overscan and flares are for film only. They are off for VHS.</p>
     <div class="slide">
       <div class="field"><label for="filterRange">Color filter</label><output id="filterOut" for="filterRange">None</output></div>
       <input type="range" id="filterRange" min="0" max="8" step="1" value="4">
