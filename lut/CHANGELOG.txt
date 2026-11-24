@@ -1,0 +1,26 @@
+Colour tables in this folder
+============================
+
+These four tables were made with spektrafilm by Andrea Volpato
+(https://github.com/andreavolpato/spektrafilm, version 0.3.4, commit 3bb2c2d)
+and are licensed CC BY-SA 4.0. See SPEKTRAFILM_LICENSE.txt in this folder.
+
+How they were made (24 November 2026, for the Reel 8 Camera project):
+
+- 50D.png   Kodak Vision3 50D film, printed on Kodak 2383 print film.
+- 200T.png  Kodak Vision3 200T film, printed on Kodak 2383 print film.
+- 500T.png  Kodak Vision3 500T film, printed on Kodak 2383 print film.
+- 100D.png  Kodak Ektachrome 100 slide film, the film itself scanned
+            (spektrafilm's "scan film" setting), not printed.
+
+Settings used for all four: sRGB in, sRGB out, 33 steps a side, one table,
+picture white placed 3.0 stops above middle grey (stops_above_midgray = 3.0).
+
+Changes from spektrafilm's own output:
+
+- Format only. Each .cube table was stored as a PNG picture: 33 tiles in a
+  row (one tile for each step of blue; red runs across a tile, green runs
+  down), 8 bits a colour. No colour value was changed apart from that rounding.
+- The same pictures are also stored inside index.html as text (base64).
+
+Changed by: the Reel 8 Camera project (github.com/pulkitkamal/reel).

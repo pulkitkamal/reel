@@ -34,7 +34,7 @@ const FILTERS=[
 const ACTIVE=["s8"];
 
 /* ---------- state ---------- */
-const S={move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
+const S={colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
   facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
@@ -55,10 +55,11 @@ try{
   if(saved.filmFlare===false) S.burn=false;
   if(saved.lensFlare===false) S.lens=false;
   if(saved.movement===false) S.move=false;
+  if(saved.colour==="spektrafilm") S.colour=1;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8"}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -212,8 +213,14 @@ const FS_FILM=COMMON+`uniform sampler2D uP,uGlow,uNoise,uDustTex,uFlare;
 uniform vec4 uDp[4],uDq[4],uSc[6],uSd[6],uLk,uLk2;
 uniform vec3 uLkWb;
 uniform vec2 uOut,uWeave,uOff1,uOff2;
-uniform vec3 uWb,uBlack,uWhite,uGam,uKc;
+uniform vec3 uWb,uBlack,uWhite,uGam,uKc;uniform sampler2D uLut;uniform float uLutOn;
 uniform float uSeed,uEv,uSat,uK,uGrain,uGs,uHal,uBloom,uBw,uFlicker,uOver,uSide,uFmt,uVig,uCa,uCorner,uT,uE,uFl,uFlash,uDsz,uGain,uOff,uSh,uHd,uVexp;
+// second colour choice: look the colour up in a table (33 steps a side, laid out as 33 tiles in a row, one for each step of blue)
+vec3 lut3(vec3 c){
+  c=clamp(c,0.,1.);float n=33.,b=c.b*(n-1.),b0=floor(b),b1=min(b0+1.,n-1.);
+  vec2 q=vec2((c.r*(n-1.)+.5)/n,(c.g*(n-1.)+.5)/n);
+  return mix(texture2D(uLut,vec2((b0+q.x)/n,q.y)).rgb,texture2D(uLut,vec2((b1+q.x)/n,q.y)).rgb,b-b0);
+}
 float sig(float x,float k){
   float a=1./(1.+exp(k*.5)),b=1./(1.+exp(-k*.5));
   return (1./(1.+exp(-k*(x-.5)))-a)/(b-a);
@@ -279,6 +286,7 @@ void main(){
   c*=uWb;
   vec3 lk=vec3(0.);
   if(uLk.x+uLk2.x+uLk2.y>.001){lk=leak(pl);c+=lk*uLkWb;}
+  vec3 cl=c;
   float l=dot(c,vec3(.2126,.7152,.0722));
   c=mix(vec3(l),c,uSat);
   c*=1.-.14*clamp(length(c-l)/(l+.05),0.,1.)*(1.-uBw);
@@ -294,6 +302,7 @@ void main(){
   float le=dot(g,vec3(.299,.587,.114));
   g=mix(g,vec3(le),smoothstep(.72,1.05,le)*uHd);
   g=uBlack+g*(uWhite-uBlack);
+  if(uLutOn>.5){g=lut3(pow(clamp(cl,0.,1.),vec3(1./2.2)));le=dot(g,vec3(.299,.587,.114));}   // the table takes the picture as the camera gave it and returns the film's colour
   if(uBw>.5)g=vec3(dot(g,vec3(.299,.587,.114)))*vec3(1.,.99,.955);
   // Grain, measured against a reference clip: one clumpy pattern shared by all three colours, a slow unevenness about seven grains wide,
   // and only soft colour clouds on top (film's three colour layers each have their own grain, but from a normal distance it reads as a gentle tint, not as coloured dots)
@@ -778,6 +787,31 @@ const R=Math.random;
 // One film frame is built in two steps. "Exposing" puts a camera picture into the small picture buffer; a second or third picture can be
 // blended in, which is what smears movement the way a film shutter does. "Developing" then turns that buffer into the finished frame.
 let FG=null;
+// Second colour choice (Settings): colour tables made with spektrafilm by Andrea Volpato, CC BY-SA 4.0 (see luts.js). Black and white has no table.
+const LUT={tex:{},asked:false};
+function loadLuts(){
+  if(LUT.asked||!glOK||typeof SF_LUT==="undefined") return;LUT.asked=true;
+  for(const k in SF_LUT){
+    const im=new Image();
+    im.onload=()=>{
+      const t=gl.createTexture();
+      gl.activeTexture(gl.TEXTURE0+5);gl.bindTexture(gl.TEXTURE_2D,t);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);
+      let ok=true;try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,im);}catch(e){ok=false;}
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.BROWSER_DEFAULT_WEBGL);
+      if(!ok) return;
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+      LUT.tex[k]=t;
+    };
+    im.src=SF_LUT[k];
+  }
+}
+function lutFor(stock){            // the table for this film, or null: our own colour is used (choice is off, no table for this film, or not loaded yet)
+  if(S.colour!==1||typeof SF_LUT==="undefined"||!SF_LUT[stock]) return null;
+  if(!LUT.asked) loadLuts();
+  return LUT.tex[stock]||null;
+}
 function beginFrame(aspect){
   sizeCanvas(aspect);
   const F=FORMATS[S.format],geo=pictureGeom(F);
@@ -818,7 +852,7 @@ function develop(now){
       uLines:Math.round(480*cv.height/Math.min(cv.width,cv.height)*.75)});
     draw(null);
   }else{
-    const st=FILM_STOCKS[S.stock];
+    const st=FILM_STOCKS[S.stock],lt=lutFor(S.stock);
     // pass 2: soften the picture (real small-gauge film is far softer than a phone)
     const T1=target("T1",pw,ph),PB=target("PB",pw,ph),so=F.soft*pw/600;
     bind(0,Pt.tex);use(PR.blur,{uTex:{tex:0},uDir:[so/pw,0],uThr:0});draw(T1);
@@ -834,11 +868,11 @@ function develop(now){
     rollDamage(F.dmg);rollFilmFlare();
     if(dmgHook) dmgHook(SCRP,SCRQ,DUSTP,DUSTQ);
     const wv=F.weave;
-    bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);
-    use(PR.film,{uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:st.wb,uFlash:FLR.mul,
+    bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);bind(5,lt||noiseTex);
+    use(PR.film,{uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:lt?f:st.wb,uFlash:FLR.mul,uLut:{tex:5},uLutOn:lt?1:0,
       uDp:DUSTP,uDq:DUSTQ,uSc:SCRP,uSd:SCRQ,uDsz:F.dsz,uOut:[cv.width,cv.height],
       uWeave:[((R()-.5)*.0012+Math.sin(now/1100)*.0006)*wv,((R()-.5)*.0014+Math.sin(now/700)*.0008)*wv],
-      uOff1:off1,uOff2:off2,uWb:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uBlack:st.black,uWhite:st.white,
+      uOff1:off1,uOff2:off2,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uBlack:st.black,uWhite:st.white,
       uSeed:seed,uEv:S.ev,uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uVexp:F.vexp,uGrain:st.grain*F.grainMul,uGs:F.gs*Math.min(cv.width,cv.height)/1080,
       uHal:st.hal,uBloom:st.bloom,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1),
       uOver:S.overscan?1:0,uSide:S.overscan?S.side:0,uFmt:S.format==="s16"?1:0,uVig:F.vig,uCa:F.ca,uCorner:F.corner,
@@ -1233,6 +1267,7 @@ function paint(){
   for(const b of $("formatRow").children){b.setAttribute("aria-pressed",b.dataset.v===S.format);b.disabled=recording;}
   for(const b of $("stockRow").children) b.setAttribute("aria-pressed",b.textContent===S.stock);
   for(const b of $("facingSeg").children) b.setAttribute("aria-pressed",b.dataset.v===S.facing);
+  for(const b of $("colourSeg").children) b.setAttribute("aria-pressed",+b.dataset.v===S.colour);
   for(const b of $("sideSeg").children) b.setAttribute("aria-pressed",+b.dataset.v===S.side);
   $("sideSeg").classList.toggle("dim",!S.overscan||isVhs);
   $("overSwitch").setAttribute("aria-checked",S.overscan&&!isVhs);
@@ -1326,6 +1361,11 @@ $("overSwitch").onclick=()=>{if(recording){toast("Stop recording to change this.
 $("burnSwitch").onclick=()=>{S.burn=!S.burn;remember();paint();if(S.burn&&!recording) startFilmFlare(.8);};   // switching it on shows one, so you can see what it is
 $("lensSwitch").onclick=()=>{S.lens=!S.lens;LF.tr.length=0;remember();paint();};
 $("moveSwitch").onclick=()=>{S.move=!S.move;remember();paint();mvReset();if(mode==="live"&&!recording) askCamRate();};
+$("colourSeg").onclick=e=>{
+  const v=e.target.dataset&&e.target.dataset.v;if(v===undefined) return;
+  if(recording){toast("Stop recording to change this.");return;}
+  S.colour=+v;remember();paint();if(S.colour) loadLuts();
+};
 $("sideSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(v===undefined||S.format==="vhs") return;
   if(recording){toast("Stop recording to change this.");return;}
@@ -1354,7 +1394,7 @@ window.addEventListener("resize",()=>sizeCanvas(srcAspect));
 requestAnimationFrame(tick);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,nominalRate,rateFits,groupStart,shutterWeight,
+window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,nominalRate,rateFits,groupStart,shutterWeight,
   get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
   blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";$("srcCard").hidden=true;},snap(){return new Promise(r=>{snapCb=r;});},
