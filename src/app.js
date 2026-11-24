@@ -20,7 +20,7 @@ const TAPES={
   "WORN":{soft:1.7,noise:.120,wear:1.00,sat:.76}
 };
 const FORMATS={
-  s8: {name:"SUPER 8", aspect:4/3,fps:[18,24],stocks:Object.keys(FILM_STOCKS),pShort:520,gs:1.12,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.36,halo:1.1,dsz:1.0,dmg:1.0},
+  s8: {name:"SUPER 8", aspect:4/3,fps:[18,24],stocks:Object.keys(FILM_STOCKS),pShort:520,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.36,halo:1.1,dsz:1.0,dmg:1.0},
   s16:{name:"SUPER 16",aspect:5/3,fps:[24,25],stocks:Object.keys(FILM_STOCKS),pShort:880,gs:.9,grainMul:.6,weave:.32,vig:.24,vexp:1.25,ca:.0014,corner:.012,strip:.13,edge:.030,soft:.55,halo:1.0,dsz:.65,dmg:.6},
   vhs:{name:"VHS",     aspect:4/3,fps:[25,30],stocks:Object.keys(TAPES),      pShort:480}
 };
@@ -34,7 +34,7 @@ const FILTERS=[
 const ACTIVE=["s8"];
 
 /* ---------- state ---------- */
-const S={format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
+const S={move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
   facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
@@ -54,10 +54,11 @@ try{
   if(saved.zoomSpeed) S.zoomSpeed=Math.min(2,Math.max(.4,+saved.zoomSpeed||1));
   if(saved.filmFlare===false) S.burn=false;
   if(saved.lensFlare===false) S.lens=false;
+  if(saved.movement===false) S.move=false;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -100,13 +101,31 @@ float h1(vec2 p){p=fract(p*vec2(443.897,441.423));p+=dot(p,p.yx+19.19);return fr
 float rr(vec2 p,vec2 c,vec2 hf,float r){vec2 d=abs(p-c)-hf+r;return length(max(d,0.))+min(max(d.x,d.y),0.)-r;}
 `;
 // 1. crop, zoom and mirror the source into a small "picture" (its low size is the film's softness)
-const FS_PREP=COMMON+`uniform sampler2D uTex;uniform float uSrcA,uPicA,uZoom,uMirror;
+const FS_PREP=COMMON+`uniform sampler2D uTex;uniform float uSrcA,uPicA,uZoom,uMirror,uClean,uCk;uniform vec2 uPx;
+// When the picture is enlarged (zoom), the camera's own noise is enlarged with it and starts to look like coarse grain.
+// This evens out small differences between neighbouring points (flat walls, skies) and leaves edges and real detail alone.
+vec3 clean(vec2 q,vec3 c0){
+  vec3 acc=c0;float ws=1.;
+  for(int j=-2;j<=2;j++)for(int i=-2;i<=2;i++){
+    if(i==0&&j==0) continue;
+    vec3 c=texture2D(uTex,q+vec2(float(i),float(j))*uPx).rgb,d=c-c0;
+    float w=exp(-dot(d,d)*uCk-float(i*i+j*j)*.11);
+    acc+=c*w;ws+=w;
+  }
+  return mix(c0,acc/ws,uClean);
+}
 void main(){
   vec2 q=(vUv-.5)/uZoom;
   if(uSrcA>uPicA)q.x*=uPicA/uSrcA;else q.y*=uSrcA/uPicA;
   q+=.5;if(uMirror>.5)q.x=1.-q.x;
-  gl_FragColor=vec4(texture2D(uTex,q).rgb,1.);
+  vec3 c=texture2D(uTex,q).rgb;
+  if(uClean>.001) c=clean(q,c);
+  gl_FragColor=vec4(c,1.);
 }`;
+const CLEAN={from:1.1,span:.7,px0:1.45,pxk:.45,k:140};   // starts just above 1x, full by 1.8x; reaches further the more the picture is enlarged
+// 1b. two camera pictures mixed into one film frame, added up as light (so a moving lamp leaves a bright trail, as it does on film)
+const FS_MIX=COMMON+`uniform sampler2D uA,uB;uniform float uShare;
+void main(){vec3 a=texture2D(uA,vUv).rgb,b=texture2D(uB,vUv).rgb;gl_FragColor=vec4(sqrt(mix(a*a,b*b,uShare)),1.);}`;
 // 2. blur of the bright parts only (glow around highlights)
 const FS_BLUR=COMMON+`uniform sampler2D uTex;uniform vec2 uDir;uniform float uThr;
 vec3 s(vec2 uv){
@@ -282,7 +301,7 @@ void main(){
   vec3 n2=texture2D(uNoise,gq.yx/7.+uOff2).rgb-.5;
   vec3 n3=texture2D(uNoise,gq/2.05+uOff2.yx+.37).rgb-.5;
   vec3 gn=vec3(n1.g+n2.g*.235)*vec3(1.,1.,.92)+n3*vec3(.46,.36,.38)*(1.-uBw);
-  g+=gn*uGrain*.80*(1.-exp(-max(le,0.)/.2));
+  g+=gn*uGrain*.725*(1.-exp(-max(le,0.)/.2));
   // film damage, laid over the grain: a few light hairs and specks, and hair-thin dark scratches along the film's direction of travel
   vec2 lp=pl*rsz;
   float u1=m/1080.;
@@ -705,7 +724,7 @@ function rollFilmFlare(){
 }
 function initGL(){
   if(!gl) return false;
-  PR.prep=makeProg(FS_PREP);PR.blur=makeProg(FS_BLUR);PR.film=makeProg(FS_FILM);
+  PR.prep=makeProg(FS_PREP);PR.mix=makeProg(FS_MIX);PR.blur=makeProg(FS_BLUR);PR.film=makeProg(FS_FILM);
   if(!PR.prep||!PR.blur||!PR.film) return false;          // the tape look is only built when it is first used
   PR.hot=makeProg(FS_HOT);PR.flare=makeProg(FS_FLARE);PR.lum=makeProg(FS_LUM);
   if(!PR.hot||!PR.flare||!PR.lum) LF.ok=false;             // no lens flare on this phone; everything else still works
@@ -756,34 +775,35 @@ function pictureGeom(F){
 const dyn={glitch:0,trackY:1.2,breath:0};
 let lastFrame=0,lastTick=0,zoomDir=0,frames=0,snapCb=null,frozen=false,freezeNext=false,dmgHook=null;   // frozen, dmgHook: testing only
 const R=Math.random;
-function tick(now){
-  requestAnimationFrame(tick);
-  const dt=Math.min(.1,(now-lastTick)/1000);lastTick=now;
-  if(zoomDir){
-    S.zoom=Math.min(4,Math.max(1,S.zoom*Math.exp(zoomDir*S.zoomSpeed*.9*dt)));
-    $("zoomRead").textContent=S.zoom.toFixed(1)+"×";
-  }
-  const iv=1000/S.fps;
-  if(now-lastFrame<iv-1) return;
-  lastFrame=(now-lastFrame>iv*2)?now:lastFrame+iv;   // keeps the true frame rate on a 60 Hz screen
-  if(!glOK||frozen) return;
-  let src=null;
-  if(mode==="test"){drawTest(now/1000);src=testCv;srcAspect=.75;}
-  else if(mode==="still"&&stillEl){src=stillEl;srcAspect=stillEl.naturalWidth/stillEl.naturalHeight;}
-  else if(video.readyState>=2&&video.videoWidth){src=video;srcAspect=video.videoWidth/video.videoHeight;}
-  if(!src) return;
-  sizeCanvas(srcAspect);
+// One film frame is built in two steps. "Exposing" puts a camera picture into the small picture buffer; a second or third picture can be
+// blended in, which is what smears movement the way a film shutter does. "Developing" then turns that buffer into the finished frame.
+let FG=null;
+function beginFrame(aspect){
+  sizeCanvas(aspect);
+  const F=FORMATS[S.format],geo=pictureGeom(F);
+  const pw=geo.a>=1?Math.round(F.pShort*geo.a):F.pShort,ph=geo.a>=1?F.pShort:Math.round(F.pShort/geo.a);
+  target("P2",pw,ph);target("PB",pw,ph);
+  FG={F,geo,pw,ph,Pt:target("P",pw,ph)};
+}
+function expose(src,share){
+  // share = how much of the film frame this camera picture makes up: 1 = all of it, .5 = half, mixed with what is already there
+  const mixIn=share<1&&PR.mix,to=mixIn?target("PB",FG.pw,FG.ph):FG.Pt,out=mixIn?target(FG.Pt===T.P?"P2":"P",FG.pw,FG.ph):null;
   bind(0,srcTex);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
-  try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);}catch(e){return;}
-  const F=FORMATS[S.format],f=FILTERS[S.filter][1],isVhs=S.format==="vhs";
-  const geo=pictureGeom(F);
-  const pw=geo.a>=1?Math.round(F.pShort*geo.a):F.pShort,ph=geo.a>=1?F.pShort:Math.round(F.pShort/geo.a);
-  // pass 1: picture
-  const Pt=target("P",pw,ph);
-  bind(0,srcTex);
-  use(PR.prep,{uTex:{tex:0},uSrcA:srcAspect,uPicA:geo.a,uZoom:S.zoom,uMirror:mode==="live"&&S.facing==="user"?1:0});
-  draw(Pt);
+  try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);}catch(e){return false;}
+  const cz=cropZoom(),sw=src.videoWidth||src.naturalWidth||src.width||1920,sh=src.videoHeight||src.naturalHeight||src.height||1080;
+  use(PR.prep,{uTex:{tex:0},uSrcA:srcAspect,uPicA:FG.geo.a,uZoom:cz,uMirror:mode==="live"&&S.facing==="user"?1:0,
+    uClean:Math.min(1,Math.max(0,(cz-CLEAN.from)/CLEAN.span)),uCk:CLEAN.k,uPx:[(CLEAN.px0+CLEAN.pxk*(cz-1))/sw,(CLEAN.px0+CLEAN.pxk*(cz-1))/sh]});
+  draw(to);
+  if(mixIn){
+    bind(0,FG.Pt.tex);bind(1,to.tex);
+    use(PR.mix,{uA:{tex:0},uB:{tex:1},uShare:share});draw(out);
+    FG.Pt=out;
+  }
+  return true;
+}
+function develop(now){
+  const F=FG.F,geo=FG.geo,pw=FG.pw,ph=FG.ph,Pt=FG.Pt,f=FILTERS[S.filter][1],isVhs=S.format==="vhs";
   const off1=[R(),R()],off2=[R(),R()],seed=R()*10;
   if(isVhs){
     if(!PR.vhs) PR.vhs=makeProg(FS_VHS);
@@ -825,17 +845,144 @@ function tick(now){
       uT:geo.t,uE:geo.e});
     draw(null);
   }
-  frames++;
+  frames++;MV.lastRender=now;
+  if(MV.log) MV.log.push([now,MV.locked?MV.parts:1,MV.locked?1:0]);
   if(recording&&recTrack) recTrack.requestFrame();
   if(snapCb){const f=snapCb;snapCb=null;if(freezeNext){frozen=true;freezeNext=false;}f(cv.toDataURL("image/png"));}
+}
+function tick(now){requestAnimationFrame(tick);if(!MV.manual) step(now);}
+function step(now){
+  const dt=Math.min(.1,(now-lastTick)/1000);lastTick=now;
+  if(zoomDir){
+    S.zoom=Math.min(4,Math.max(1,S.zoom*Math.exp(zoomDir*S.zoomSpeed*.9*dt)));
+    $("zoomRead").textContent=S.zoom.toFixed(1)+"×";
+  }
+  pushCamZoom();
+  const iv=1000/S.fps;
+  if(MV.locked){                                     // the camera's own pictures are driving the film; this loop only stands guard
+    if(mode==="live"&&now-MV.lastRender<iv*3.2) return;
+    mvUnlock(now);                                   // the camera stopped delivering in step: go back to the plain way at once
+  }
+  if(now-lastFrame<iv-1) return;
+  lastFrame=(now-lastFrame>iv*2)?now:lastFrame+iv;   // keeps the true frame rate on a 60 Hz screen
+  if(!glOK||frozen) return;
+  let src=null;
+  if(mode==="test"){drawTest(now/1000);src=testCv;srcAspect=.75;}
+  else if(mode==="still"&&stillEl){src=stillEl;srcAspect=stillEl.naturalWidth/stillEl.naturalHeight;}
+  else if(video.readyState>=2&&video.videoWidth){src=video;srcAspect=video.videoWidth/video.videoHeight;}
+  if(!src) return;
+  beginFrame(srcAspect);
+  if(!expose(src,1)) return;
+  develop(now);
+}
+
+/* ---------- movement: film frames in step with the camera, and a slight smear ---------- */
+// A real Super 8 camera exposes 18 frames a second, evenly, and each frame stays open for roughly a thirtieth to a fortieth of a second,
+// so things that move smear a little. A phone camera runs at its own speed and freezes each picture sharply.
+// So the camera is asked to run about three times as fast as the film. The camera's pictures are then counted off into groups, one group
+// for each film frame (three each at 54 a second; 4, 3, 3 at 60). The first pictures of a group are mixed together: that is the time the
+// shutter is open. The rest are skipped: the shutter is closed. Because film frames follow the camera's own count, the rhythm is even.
+// If the camera's speed does not fit (30 a second into 18 frames), or the browser cannot report the camera's pictures, everything works
+// as it did before: the film simply takes the newest camera picture 18 times a second.
+const NOMINAL=[15,18,20,24,25,30,36,48,50,54,60,72,90,96,100,108,120];
+const MV={ok:!!video.requestVideoFrameCallback,locked:false,A:0,B:0,rate:0,nom:0,base:0,count:0,curF:-1,parts:0,wsum:0,done:true,
+  lastRender:0,good:0,bad:0,samples:[],manual:false,log:null,t0:0};
+function camRateFor(fps){return fps*3<=60?fps*3:fps*2;}
+function nominalRate(r){let best=0;for(const n of NOMINAL) if(Math.abs(r-n)<Math.abs(r-best)) best=n;return best&&Math.abs(r-best)<=best*.035?best:0;}
+function rateFits(nom,fps){return nom>0&&(nom===fps||nom>=fps*1.9);}
+function groupStart(F,A,B){return Math.ceil(F*A/B);}                         // first camera picture of film frame F
+function shutterWeight(k,g){const m=Math.max(1,Math.round(g*.55));return k<m?1:(g===2&&k===1?.6:0);}   // picture k of a group of g: 0 = shutter closed
+function mvUnlock(now){MV.locked=false;MV.good=0;MV.bad=0;MV.curF=-1;MV.done=true;lastFrame=now||performance.now();paintStatus();}
+function mvReset(now){MV.t0=performance.now();MV.count=0;MV.samples.length=0;MV.rate=0;MV.nom=0;MV.good=0;MV.bad=0;if(MV.locked) mvUnlock(now);else paintStatus();}
+function askCamRate(){
+  const tr=liveStream&&liveStream.getVideoTracks()[0];if(!tr||!tr.applyConstraints) return;
+  tr.applyConstraints({width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:S.move?camRateFor(S.fps):30}}).catch(()=>{});
+}
+function onVideoFrame(now,meta){video.requestVideoFrameCallback(onVideoFrame);if(!MV.manual) camFrame(now,meta);}
+function camFrame(now,meta){
+  if(mode!=="live"||!glOK||!S.move){if(MV.locked) mvUnlock(now);return;}
+  // 1. how fast is the camera really running? (counted over the last second and a half)
+  MV.count++;
+  const pf=meta&&typeof meta.presentedFrames==="number"?meta.presentedFrames:MV.count,sm=MV.samples;
+  sm.push(now,pf);
+  while(sm.length>4&&now-sm[0]>1500) sm.splice(0,2);
+  let dt=0,dn=0;for(let j=2;j<sm.length;j+=2){const d=sm[j]-sm[j-2];if(d>0&&d<100){dt+=d;dn+=sm[j+1]-sm[j-1];}}
+  if(sm.length>=24&&dt>600) MV.rate=dn/(dt/1000);
+  const nom=nominalRate(MV.rate);
+  // 2. does that speed fit the film speed? It must hold steady for a moment before the film follows it.
+  if(!MV.locked){
+    MV.good=rateFits(nom,S.fps)&&nom===MV.nom?MV.good+1:0;MV.nom=nom;
+    if(MV.good<12||frozen){if(MV.good===0&&(MV.count&31)===0) paintStatus();return;}
+    MV.locked=true;MV.A=nom;MV.B=S.fps;MV.base=pf;MV.curF=-1;MV.done=true;MV.bad=0;MV.lastRender=now;paintStatus();
+  }else{
+    MV.bad=nom===MV.A?0:MV.bad+1;
+    if(MV.bad>=30||S.fps!==MV.B){mvUnlock(now);return;}
+  }
+  if(frozen) return;
+  // 3. which film frame does this camera picture belong to, and which place has it in its group?
+  const i=pf-MV.base,Fn=Math.floor(i*MV.B/MV.A),s0=groupStart(Fn,MV.A,MV.B),g=groupStart(Fn+1,MV.A,MV.B)-s0,k=i-s0;
+  if(Fn!==MV.curF){MV.curF=Fn;MV.parts=0;MV.wsum=0;MV.done=false;}
+  if(MV.done) return;
+  let last=0;for(let j=g-1;j>0;j--) if(shutterWeight(j,g)>0){last=j;break;}   // the last picture the shutter is open for
+  const w=shutterWeight(k,g),wk=w>0?w:(MV.parts===0?1:0);                    // if the open ones were all missed, use this one rather than none
+  if(wk>0&&video.readyState>=2&&video.videoWidth){
+    srcAspect=video.videoWidth/video.videoHeight;
+    if(MV.parts===0) beginFrame(srcAspect);
+    if(expose(video,wk/(MV.wsum+wk))){MV.parts++;MV.wsum+=wk;}
+  }
+  if(k>=last&&MV.parts>0){MV.done=true;develop(now);}
+}
+if(MV.ok) video.requestVideoFrameCallback(onVideoFrame);
+
+/* ---------- zoom ---------- */
+// Zoom enlarges the middle of the camera's picture (the cleaning in the picture shader keeps the camera's noise from growing with it).
+// A test, off unless the page address ends in ?camzoom=1: use the phone's own zoom instead, where the browser offers it.
+const CAMZOOM=/[?&]camzoom=1(&|$)/.test(location.search);
+const CZ={ok:false,min:1,max:1,sent:1,base:1,busy:false};
+function initCamZoom(){
+  CZ.ok=false;CZ.sent=1;CZ.base=1;CZ.busy=false;
+  if(CAMZOOM) try{
+    const tr=liveStream&&liveStream.getVideoTracks()[0],c=tr&&tr.getCapabilities?tr.getCapabilities():null;
+    if(c&&c.zoom&&c.zoom.max>=1.5){CZ.ok=true;CZ.min=Math.max(1,c.zoom.min||1);CZ.max=c.zoom.max;}
+  }catch(e){}
+  paintStatus();
+}
+function cropZoom(){
+  if(mode!=="live") return S.zoom;
+  if(CZ.ok) return S.zoom>CZ.max?S.zoom/CZ.max:1;
+  return Math.max(1,S.zoom/CZ.base);                 // base is 1, unless the phone's zoom failed part-way and is stuck where it was
+}
+function pushCamZoom(){
+  if(!CZ.ok||mode!=="live"||CZ.busy) return;
+  const want=Math.min(CZ.max,Math.max(CZ.min,S.zoom));
+  if(Math.abs(want-CZ.sent)<.012) return;
+  const tr=liveStream&&liveStream.getVideoTracks()[0];if(!tr) return;
+  CZ.busy=true;
+  tr.applyConstraints({advanced:[{zoom:want}]}).then(()=>{CZ.sent=want;CZ.busy=false;},()=>{CZ.ok=false;CZ.base=CZ.sent;CZ.busy=false;paintStatus();});
+}
+function paintStatus(){
+  const el=$("camStatus");if(!el) return;
+  let a;
+  if(!S.move) a="Film movement is switched off.";
+  else if(mode!=="live") a="Film movement works with the live camera only.";
+  else if(MV.locked){
+    const g=Math.round(MV.A/MV.B),m=Math.max(1,Math.round(g*.55));
+    a="Film movement: in step with the camera ("+MV.A+" pictures a second). "+(MV.A===MV.B?"One camera picture for each film frame.":"Each film frame is a mix of "+(g===2?2:m)+" camera pictures.");
+  }
+  else if(!MV.ok||(MV.count===0&&performance.now()-MV.t0>4000)) a="Film movement: not in step. This browser does not report the camera's pictures, so it works the plain way.";
+  else if(MV.rate>0) a="Film movement: not in step. The camera gives about "+Math.round(MV.rate)+" pictures a second, which does not fit "+S.fps+" film frames, so it works the plain way.";
+  else a="Film movement: measuring the camera.";
+  if(CAMZOOM&&mode==="live") a+=CZ.ok?" Zoom test: using the phone's own zoom.":" Zoom test: this browser does not offer the phone's own zoom.";
+  if(el.textContent!==a) el.textContent=a;
 }
 
 /* ---------- sources ---------- */
 let liveStream=null,clipUrl=null;
-function stopLive(){if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;}}
+function stopLive(){if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;}CZ.ok=false;if(MV.locked) mvUnlock();}
 async function startLive(quiet){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(!quiet)toast("This browser can't open the camera here.");return false;}
   const want={video:{facingMode:S.facing,width:{ideal:1920},height:{ideal:1080}},audio:true};
+  if(S.move) want.video.frameRate={ideal:camRateFor(S.fps)};   // about three camera pictures for each film frame
   let s=null;
   try{s=await navigator.mediaDevices.getUserMedia(want);}
   catch(e){
@@ -848,6 +995,7 @@ async function startLive(quiet){
   try{await video.play();}catch(e){}
   mode="live";S.lock=false;paint();
   $("srcCard").hidden=true;$("srcChip").hidden=true;
+  mvReset();initCamZoom();
   return true;
 }
 function loadClip(file){
@@ -858,7 +1006,7 @@ function loadClip(file){
   clipUrl=URL.createObjectURL(file);
   video.srcObject=null;video.src=clipUrl;video.muted=true;video.loop=true;
   video.play().then(()=>{
-    mode="clip";S.zoom=1;
+    mode="clip";S.zoom=1;paintStatus();
     $("srcCard").hidden=true;$("srcChip").hidden=false;
     toast("Clip loaded. Press the red button to record it with this look.",3600);
   }).catch(()=>toast("This clip could not be opened. Try another one.",3600));
@@ -1091,6 +1239,7 @@ function paint(){
   $("overSwitch").disabled=isVhs;$("burnSwitch").disabled=isVhs;$("lensSwitch").disabled=isVhs;
   $("burnSwitch").setAttribute("aria-checked",S.burn&&!isVhs);
   $("lensSwitch").setAttribute("aria-checked",S.lens&&!isVhs);
+  $("moveSwitch").setAttribute("aria-checked",S.move);
   $("filmOnlyNote").hidden=!isVhs;
   $("filterRange").value=S.filter;$("filterOut").textContent=FILTERS[S.filter][0];
   $("speedRange").value=S.zoomSpeed;$("speedOut").textContent=S.zoomSpeed.toFixed(1)+"×";
@@ -1106,6 +1255,7 @@ $("evUp").onclick=()=>{S.ev=Math.min(3,Math.round((S.ev+.5)*2)/2);paint();};
 $("fpsBtn").onclick=()=>{
   if(recording) return;
   const o=FORMATS[S.format].fps;S.fpsBy[S.format]=o[(o.indexOf(S.fps)+1)%o.length];remember();paint();
+  mvReset();if(mode==="live"&&!recording) askCamRate();
 };
 $("lockBtn").onclick=async()=>{
   const tr=mode==="live"&&liveStream&&liveStream.getVideoTracks()[0];
@@ -1162,7 +1312,7 @@ function stepStock(dir){
   fd.addEventListener("pointercancel",()=>{sw=null;});
 }
 
-$("settingsBtn").onclick=()=>{closeDrawer();$("settings").hidden=false;$("settingsClose").focus();};
+$("settingsBtn").onclick=()=>{closeDrawer();paintStatus();$("settings").hidden=false;$("settingsClose").focus();};
 $("settingsClose").onclick=()=>{$("settings").hidden=true;$("settingsBtn").focus();};
 $("galleryBtn").onclick=()=>{closeDrawer();$("gallery").hidden=false;$("galleryClose").focus();};
 $("galleryClose").onclick=()=>{for(const v of $("clips").querySelectorAll("video")) v.pause();$("gallery").hidden=true;$("galleryBtn").focus();};
@@ -1175,6 +1325,7 @@ $("facingSeg").onclick=e=>{
 $("overSwitch").onclick=()=>{if(recording){toast("Stop recording to change this.");return;}S.overscan=!S.overscan;remember();paint();};
 $("burnSwitch").onclick=()=>{S.burn=!S.burn;remember();paint();if(S.burn&&!recording) startFilmFlare(.8);};   // switching it on shows one, so you can see what it is
 $("lensSwitch").onclick=()=>{S.lens=!S.lens;LF.tr.length=0;remember();paint();};
+$("moveSwitch").onclick=()=>{S.move=!S.move;remember();paint();mvReset();if(mode==="live"&&!recording) askCamRate();};
 $("sideSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(v===undefined||S.format==="vhs") return;
   if(recording){toast("Stop recording to change this.");return;}
@@ -1203,7 +1354,9 @@ window.addEventListener("resize",()=>sizeCanvas(srcAspect));
 requestAnimationFrame(tick);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,startFilmFlare,dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
+window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,nominalRate,rateFits,groupStart,shutterWeight,
+  get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
+  blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";$("srcCard").hidden=true;},snap(){return new Promise(r=>{snapCb=r;});},
   snapAndHold(){freezeNext=true;return new Promise(r=>{snapCb=r;});},release(){frozen=false;},set dmgHook(f){dmgHook=f;}};
 })();
