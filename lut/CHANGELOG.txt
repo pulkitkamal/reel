@@ -1,7 +1,7 @@
 Colour tables in this folder
 ============================
 
-These four tables were made with spektrafilm by Andrea Volpato
+These six tables were made with spektrafilm by Andrea Volpato
 (https://github.com/andreavolpato/spektrafilm, version 0.3.4, commit 3bb2c2d)
 and are licensed CC BY-SA 4.0. See SPEKTRAFILM_LICENSE.txt in this folder.
 
@@ -12,8 +12,10 @@ How they were made (24 November 2026, for the Reel 8 Camera project):
 - 500T.png  Kodak Vision3 500T film, printed on Kodak 2383 print film.
 - 100D.png  Kodak Ektachrome 100 slide film, the film itself scanned
             (spektrafilm's "scan film" setting), not printed.
+- 250D.png  Kodak Vision3 250D film, printed on Kodak 2383 print film.
+- K64.png   Kodak Kodachrome 64 slide film, the film itself scanned.
 
-Settings used for all four: sRGB in, sRGB out, 33 steps a side, one table,
+Settings used for all six: sRGB in, sRGB out, 33 steps a side, one table,
 picture white placed 3.0 stops above middle grey (stops_above_midgray = 3.0).
 
 Changes from spektrafilm's own output:
