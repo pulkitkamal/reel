@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reel 8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Reel 8 Camera</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14'/%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%23f4f1e8' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23e5372b'/%3E%3C/svg%3E">
 <style>
@@ -35,7 +42,9 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 .code{font-stretch:72%;font-weight:720;letter-spacing:.03em}
 .lab{color:var(--eng);font-size:11px;font-weight:400;letter-spacing:.02em}
 
+/* The page may use the whole screen (as an app on the Home Screen it does): keep clear of the notch, the clock and the home bar. */
 #cam{position:relative;width:100%;max-width:560px;height:100%;margin:0 auto;overflow:hidden;display:grid;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
   grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto auto;grid-template-areas:"finder" "strip" "keys" "deck"}
 
 /* ---------- viewfinder ---------- */
@@ -145,8 +154,8 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 
 /* ---------- sheets ---------- */
 .sheet{position:absolute;left:0;right:0;bottom:0;z-index:5;background:#101011;border-top:1px solid var(--edge);
-  border-radius:16px 16px 0 0;padding:14px 18px 22px;display:flex;flex-direction:column;gap:16px;max-height:92%;overflow-y:auto}
-.sheet.full{top:0;border-radius:0;border-top:0;max-height:none}
+  border-radius:16px 16px 0 0;padding:14px 18px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px;max-height:92%;overflow-y:auto}
+.sheet.full{top:0;border-radius:0;border-top:0;max-height:none;padding-top:calc(14px + env(safe-area-inset-top,0px))}
 .sheet h2{margin:0;font-stretch:72%;font-weight:720;font-size:26px;letter-spacing:.02em}
 .head{display:flex;align-items:center;justify-content:space-between}
 .head button{width:44px;height:44px;border-radius:50%;background:var(--body-hi);font-size:20px}
@@ -266,6 +275,12 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
     <div class="field"><span id="moveLabel">Film movement (slight smear)</span>
       <button class="switch" id="moveSwitch" role="switch" aria-checked="true" aria-labelledby="moveLabel"></button>
     </div>
+    <div class="field"><span id="fsndLabel">Film sound (thin, with a slight sway)</span>
+      <button class="switch" id="fsndSwitch" role="switch" aria-checked="true" aria-labelledby="fsndLabel"></button>
+    </div>
+    <div class="field"><span id="whirrLabel">Camera whirr in the sound</span>
+      <button class="switch" id="whirrSwitch" role="switch" aria-checked="false" aria-labelledby="whirrLabel"></button>
+    </div>
     <p class="note" id="filmOnlyNote" hidden>Overscan and flares are for film only. They are off for VHS.</p>
     <div class="slide">
       <div class="field"><label for="filterRange">Color filter</label><output id="filterOut" for="filterRange">None</output></div>
@@ -276,6 +291,7 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
       <input type="range" id="speedRange" min="0.4" max="2" step="0.1" value="1">
     </div>
     <p class="note" id="camStatus"></p>
+    <p class="note" id="homeNote" hidden>For a bigger picture, put this page on your Home Screen: press Share, then Add to Home Screen, and open it from there.</p>
   </section>
 
   <section class="sheet full" id="gallery" hidden aria-label="Clips">

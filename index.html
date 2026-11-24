@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reel 8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Reel 8 Camera</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14'/%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%23f4f1e8' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23e5372b'/%3E%3C/svg%3E">
 <style>
@@ -37,7 +44,9 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 .code{font-stretch:72%;font-weight:720;letter-spacing:.03em}
 .lab{color:var(--eng);font-size:11px;font-weight:400;letter-spacing:.02em}
 
+/* The page may use the whole screen (as an app on the Home Screen it does): keep clear of the notch, the clock and the home bar. */
 #cam{position:relative;width:100%;max-width:560px;height:100%;margin:0 auto;overflow:hidden;display:grid;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
   grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto auto;grid-template-areas:"finder" "strip" "keys" "deck"}
 
 /* ---------- viewfinder ---------- */
@@ -147,8 +156,8 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 
 /* ---------- sheets ---------- */
 .sheet{position:absolute;left:0;right:0;bottom:0;z-index:5;background:#101011;border-top:1px solid var(--edge);
-  border-radius:16px 16px 0 0;padding:14px 18px 22px;display:flex;flex-direction:column;gap:16px;max-height:92%;overflow-y:auto}
-.sheet.full{top:0;border-radius:0;border-top:0;max-height:none}
+  border-radius:16px 16px 0 0;padding:14px 18px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px;max-height:92%;overflow-y:auto}
+.sheet.full{top:0;border-radius:0;border-top:0;max-height:none;padding-top:calc(14px + env(safe-area-inset-top,0px))}
 .sheet h2{margin:0;font-stretch:72%;font-weight:720;font-size:26px;letter-spacing:.02em}
 .head{display:flex;align-items:center;justify-content:space-between}
 .head button{width:44px;height:44px;border-radius:50%;background:var(--body-hi);font-size:20px}
@@ -268,6 +277,12 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
     <div class="field"><span id="moveLabel">Film movement (slight smear)</span>
       <button class="switch" id="moveSwitch" role="switch" aria-checked="true" aria-labelledby="moveLabel"></button>
     </div>
+    <div class="field"><span id="fsndLabel">Film sound (thin, with a slight sway)</span>
+      <button class="switch" id="fsndSwitch" role="switch" aria-checked="true" aria-labelledby="fsndLabel"></button>
+    </div>
+    <div class="field"><span id="whirrLabel">Camera whirr in the sound</span>
+      <button class="switch" id="whirrSwitch" role="switch" aria-checked="false" aria-labelledby="whirrLabel"></button>
+    </div>
     <p class="note" id="filmOnlyNote" hidden>Overscan and flares are for film only. They are off for VHS.</p>
     <div class="slide">
       <div class="field"><label for="filterRange">Color filter</label><output id="filterOut" for="filterRange">None</output></div>
@@ -278,6 +293,7 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
       <input type="range" id="speedRange" min="0.4" max="2" step="0.1" value="1">
     </div>
     <p class="note" id="camStatus"></p>
+    <p class="note" id="homeNote" hidden>For a bigger picture, put this page on your Home Screen: press Share, then Add to Home Screen, and open it from there.</p>
   </section>
 
   <section class="sheet full" id="gallery" hidden aria-label="Clips">
@@ -351,7 +367,7 @@ const ACTIVE=["s8"];
 
 /* ---------- state ---------- */
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true,sound:true,light:false};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true,sound:true,light:false,filmSound:true,whirr:false};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
@@ -374,10 +390,12 @@ try{
   if(saved.colour==="spektrafilm") S.colour=1;
   if(saved.grainTry===0||saved.grainTry===1) S.grain=saved.grainTry;
   if(saved.sound===false) S.sound=false;
+  if(saved.filmSound===false) S.filmSound=false;
+  if(saved.whirr===true) S.whirr=true;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -1261,7 +1279,7 @@ function develop(now){
 // About five times a second the picture is drawn once more, small and without grain or marks, through each film in the strip.
 // The results are read back and painted into the strip. The one for the film in the camera also feeds the histogram.
 // While recording only that one is drawn: the film cannot be changed then, and the phone has better things to do.
-const TH={gap:170,last:0,tw:0,th:0,px:null,img:null,zero4:new Float32Array(4),zeroD:new Float32Array(16),zeroS:new Float32Array(24),bins:new Uint32Array(64),drawn:0};
+const TH={gap:170,cost:0,last:0,tw:0,th:0,px:null,img:null,zero4:new Float32Array(4),zeroD:new Float32Array(16),zeroS:new Float32Array(24),bins:new Uint32Array(64),drawn:0};
 function stockLook(name,f){                          // the settings that belong to one film
   const st=FILM_STOCKS[name],lt=lutFor(name);
   return {lt,u:{uLutOn:lt?1:0,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uLkWb:lt?f:st.wb,uBlack:st.black,uWhite:st.white,
@@ -1328,6 +1346,8 @@ function liveThumbs(U,PB,pw,ph,f){
     if(list[i0+k]===S.stock) drawHistogram(d,burnt);
   }
   TH.drawn++;
+  // If drawing and reading the previews takes this phone long, they are refreshed less often, so the picture itself stays smooth.
+  TH.cost=TH.cost*.8+(performance.now()-t)*.2;TH.gap=TH.cost>9?420:TH.cost>4.5?260:170;
   return true;
 }
 function posterNow(){                                // a small picture of what the camera sees now, taken from the strip: used as the face of the Clips button
@@ -1472,7 +1492,7 @@ async function keepAwake(){
   }catch(e){wakeLock=null;}
 }
 document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible"){keepAwake();return;}
+  if(document.visibilityState==="visible"){keepAwake();reviveCamera();return;}
   if(S.light){                                       // leaving the page: the lamp must not stay on unseen, and the key must not go on saying "on" when the phone has put it out
     const tr=liveStream&&liveStream.getVideoTracks()[0];
     try{if(tr) tr.applyConstraints({advanced:[{torch:false}]}).catch(()=>{});}catch(e){}
@@ -1480,6 +1500,14 @@ document.addEventListener("visibilitychange",()=>{
   }
 });
 document.addEventListener("pointerdown",keepAwake,{passive:true});
+// Phones take the camera away from a page that is put in the background. Coming back, or whenever the camera stops by itself, it is started again.
+function reviveCamera(){
+  if(mode!=="live"||recording||LENS.busy) return;
+  const tr=liveStream&&liveStream.getVideoTracks()[0];
+  if(tr&&tr.readyState!=="ended") return;
+  LENS.busy=true;
+  startLive(true,LENS.i>=0&&LENS.list[LENS.i]?LENS.list[LENS.i].id:undefined).then(ok=>ok||startLive(true)).then(ok=>{if(!ok) showCard(false);},()=>{}).then(()=>{LENS.busy=false;});
+}
 // Rear lenses the browser lists one by one (wide, ultra wide, tele). Cameras that combine lenses change lens by themselves,
 // so they are not offered by name: when the phone's usual rear camera is one of those, it is offered as "auto".
 const LENS={list:[],i:-1,def:"",busy:false};
@@ -1527,6 +1555,7 @@ async function startLive(quiet,lensId){
     catch(e2){if(!quiet)toast("The camera did not open. Check that this page is allowed to use it.",3600);return false;}
   }
   stopLive();liveStream=s;
+  {const vt=s.getVideoTracks()[0];if(vt) vt.addEventListener("ended",()=>{if(liveStream===s&&document.visibilityState==="visible") setTimeout(reviveCamera,400);});}
   if(!lensId){const vt=s.getVideoTracks()[0];LENS.def=vt&&vt.getSettings?vt.getSettings().deviceId||"":"";}   // the camera the phone picks by itself
   if(clipUrl){URL.revokeObjectURL(clipUrl);clipUrl=null;}
   video.removeAttribute("src");video.srcObject=s;video.muted=true;video.loop=false;
@@ -1567,7 +1596,7 @@ $("cardClose").onclick=()=>card(false);
 $("liveBtn").onclick=()=>startLive(false);
 
 /* ---------- recording ---------- */
-let rec=null,chunks=[],recStart=0,recTimer=0,actx=null,adest=null,recTrack=null,recPoster="";
+let rec=null,chunks=[],recStart=0,recTimer=0,recTrack=null,recPoster="";
 const clips=[];
 // Grain is the hardest thing there is to squeeze into a video file. HEVC (the format iPhones and the reference app use) keeps far more of it
 // than H.264 at the same size, so it is tried first on iPhone and iPad. If a clip made that way ever fails to open, the page goes back to H.264.
@@ -1580,16 +1609,65 @@ function pickMime(){
   for(const m of c){try{if(MediaRecorder.isTypeSupported(m))return m;}catch(e){}}
   return "";
 }
-function clipAudioTrack(){
+/* ---------- film-style sound ----------
+   Sound on Super 8 was a thin magnetic stripe on the edge of the film: little bass, no top (about 90 to 6000 cycles), a slow sway and a
+   fast tremble in pitch from the film's uneven travel, a touch of overload, and a steady hiss. That is what this makes of the microphone.
+   The camera's own whirr (motor hum and the claw's tick at each frame) can be laid over it; it is made here, not a recording.
+   Everything to be recorded goes into SND.inp; SND.film and SND.plain choose the way through; nothing is ever sent to the loudspeaker. */
+const SND={ctx:null,dest:null,inp:null,film:null,plain:null,whirr:null,tick:null,hum:null,liveNode:null,liveOf:null,clipNode:null};
+function sndGraph(){
+  if(SND.ctx) return SND.ctx;
+  const AC=window.AudioContext||window.webkitAudioContext,c=new AC(),R=c.sampleRate;
+  const G=v=>{const g=c.createGain();g.gain.value=v;return g;};
+  const F=(type,f,q)=>{const b=c.createBiquadFilter();b.type=type;b.frequency.value=f;if(q) b.Q.value=q;return b;};
+  const noise=secs=>{const b=c.createBuffer(1,Math.floor(R*secs),R),d=b.getChannelData(0);for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    const n=c.createBufferSource();n.buffer=b;n.loop=true;n.start();return n;};
+  const osc=(type,f)=>{const o=c.createOscillator();o.type=type;o.frequency.value=f;o.start();return o;};
+  SND.ctx=c;SND.dest=c.createMediaStreamDestination();SND.inp=G(1);SND.film=G(0);SND.plain=G(1);
+  SND.inp.connect(SND.plain);SND.plain.connect(SND.dest);
+  // the stripe: narrow band, pitch that sways (0.6 times a second) and trembles (6.3 times a second), gentle overload
+  const hp=F("highpass",90,.7),lp1=F("lowpass",6000,.7),lp2=F("lowpass",7000,.7),dl=c.createDelay(.1),sh=c.createWaveShaper();
+  dl.delayTime.value=.02;
+  const sway=osc("sine",.6),swayG=G(.0005),tremble=osc("sine",6.3),trembleG=G(.00005);
+  sway.connect(swayG);swayG.connect(dl.delayTime);tremble.connect(trembleG);trembleG.connect(dl.delayTime);
+  const curve=new Float32Array(1025);for(let i=0;i<1025;i++){const x=i/512-1;curve[i]=Math.tanh(1.6*x)/Math.tanh(1.6);}
+  sh.curve=curve;
+  SND.inp.connect(hp);hp.connect(lp1);lp1.connect(lp2);lp2.connect(dl);dl.connect(sh);sh.connect(SND.film);SND.film.connect(SND.dest);
+  const hiss=noise(2),hissF=F("bandpass",3200,.5),hissG=G(.006);hiss.connect(hissF);hissF.connect(hissG);hissG.connect(SND.film);
+  // the camera: a motor hum, and a short tick as the claw pulls each frame down
+  SND.whirr=G(0);SND.whirr.connect(SND.dest);
+  const wn=noise(1.3),wF=F("bandpass",1700,1.2),gate=G(0);SND.tick=osc("sawtooth",18);
+  const tickShape=c.createWaveShaper(),tc=new Float32Array(257);for(let i=0;i<257;i++){const x=i/128-1;tc[i]=x>.72?(x-.72)/.28:0;}   // open for the last seventh of each turn
+  tickShape.curve=tc;SND.tick.connect(tickShape);tickShape.connect(gate.gain);
+  wn.connect(wF);wF.connect(gate);const tickG=G(.08);gate.connect(tickG);tickG.connect(SND.whirr);
+  SND.hum=osc("triangle",72);const humF=F("lowpass",420,.7),humG=G(.02);SND.hum.connect(humF);humF.connect(humG);humG.connect(SND.whirr);
+  const rumble=G(.01),rF=F("bandpass",520,.8);wn.connect(rF);rF.connect(rumble);rumble.connect(SND.whirr);
+  sndSet();
+  return c;
+}
+function sndSet(){                                   // put the choices in Settings, and the film speed, into the sound
+  const c=SND.ctx;if(!c) return;
+  const t=c.currentTime,film=S.filmSound&&S.format!=="vhs";
+  SND.film.gain.setTargetAtTime(film?.6:0,t,.02);SND.plain.gain.setTargetAtTime(film?0:1,t,.02);
+  SND.whirr.gain.setTargetAtTime(S.whirr&&S.format!=="vhs"?1:0,t,.02);
+  SND.tick.frequency.setTargetAtTime(S.fps,t,.02);SND.hum.frequency.setTargetAtTime(S.fps*4,t,.02);
+}
+function soundTrack(){                               // the sound for a shot: the microphone, or the clip's own sound, through the graph above
   try{
-    if(!actx){
-      const AC=window.AudioContext||window.webkitAudioContext;actx=new AC();
-      adest=actx.createMediaStreamDestination();
-      actx.createMediaElementSource(video).connect(adest);
+    const c=sndGraph();
+    if(mode==="clip"){
+      if(!SND.clipNode){SND.clipNode=c.createMediaElementSource(video);SND.clipNode.connect(SND.inp);}
+    }else{
+      const mic=liveStream&&liveStream.getAudioTracks()[0];
+      if(!mic) return null;
+      if(SND.liveOf!==liveStream){
+        if(SND.liveNode){try{SND.liveNode.disconnect();}catch(e){}}
+        SND.liveNode=c.createMediaStreamSource(new MediaStream([mic]));SND.liveNode.connect(SND.inp);SND.liveOf=liveStream;
+      }
     }
-    actx.resume();
-    return adest.stream.getAudioTracks()[0]||null;
-  }catch(e){return null;}
+    sndSet();c.resume();
+    return SND.dest.stream.getAudioTracks()[0]||null;
+  }catch(e){return mode==="live"&&liveStream?liveStream.getAudioTracks()[0]||null:null;}   // no sound graph in this browser: the microphone as it is
 }
 function clipAtStart(){
   // after jumping back to the start, the old picture stays on screen for a moment; wait until the new one is showing
@@ -1614,9 +1692,10 @@ async function startRec(){
 async function beginRec(){
   const tracks=[];
   let audio=null;
-  if(mode==="live"&&liveStream) audio=liveStream.getAudioTracks()[0]||null;
+  const plain=!(S.filmSound||S.whirr)||S.format==="vhs";
+  if(mode==="live"&&liveStream&&S.sound) audio=plain?liveStream.getAudioTracks()[0]||null:soundTrack();   // untouched sound goes straight from the microphone, as it always has
   if(mode==="clip"){
-    audio=clipAudioTrack();
+    audio=soundTrack();
     video.pause();video.loop=false;video.muted=false;
     try{video.currentTime=0;await video.play();}catch(e){video.muted=true;try{await video.play();}catch(e2){}}
     await clipAtStart();
@@ -1810,6 +1889,8 @@ function paint(){
   $("burnSwitch").setAttribute("aria-checked",S.burn&&!isVhs);
   $("lensSwitch").setAttribute("aria-checked",S.lens&&!isVhs);
   $("moveSwitch").setAttribute("aria-checked",S.move);
+  $("fsndSwitch").setAttribute("aria-checked",S.filmSound&&!isVhs);$("whirrSwitch").setAttribute("aria-checked",S.whirr&&!isVhs);
+  $("fsndSwitch").disabled=isVhs;$("whirrSwitch").disabled=isVhs;
   $("filmOnlyNote").hidden=!isVhs;
   $("filterRange").value=S.filter;$("filterOut").textContent=FILTERS[S.filter][0];
   $("speedRange").value=S.zoomSpeed;$("speedOut").textContent=S.zoomSpeed.toFixed(1)+"×";
@@ -1939,6 +2020,8 @@ $("facingSeg").onclick=e=>{
 $("overSwitch").onclick=()=>{if(recording){toast("Stop recording to change this.");return;}S.overscan=!S.overscan;remember();paint();};
 $("burnSwitch").onclick=()=>{S.burn=!S.burn;remember();paint();if(S.burn&&!recording) startFilmFlare(.8);};   // switching it on shows one, so you can see what it is
 $("lensSwitch").onclick=()=>{S.lens=!S.lens;LF.tr.length=0;remember();paint();};
+$("fsndSwitch").onclick=()=>{if(recording){toast("Stop recording to change this.");return;}S.filmSound=!S.filmSound;remember();paint();sndSet();};
+$("whirrSwitch").onclick=()=>{if(recording){toast("Stop recording to change this.");return;}S.whirr=!S.whirr;remember();paint();sndSet();};
 $("moveSwitch").onclick=()=>{S.move=!S.move;remember();paint();mvReset();if(mode==="live"&&!recording) askCamRate();};
 $("colourSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(v===undefined) return;
@@ -1972,9 +2055,15 @@ if(!glOK) toast("This browser cannot draw the film look (WebGL is off).",6000);
 sizeCanvas(srcAspect);
 window.addEventListener("resize",()=>{sizeStrip();sizeCanvas(srcAspect);showFilmInStrip(false);});
 requestAnimationFrame(tick);
+// On its own address the page keeps a copy of itself, so it opens without a connection, and it can be put on the Home Screen as an app.
+const STANDALONE=!!(navigator.standalone||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches));
+if(!FRAMED&&"serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){
+  try{navigator.serviceWorker.register("sw.js").catch(()=>{});}catch(e){}
+}
+$("homeNote").hidden=!(IS_IOS&&!STANDALONE&&!FRAMED);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,refreshLenses,useLens,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
+window.__reel8={STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
   get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
   blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";card(false);},snap(){return new Promise(r=>{snapCb=r;});},
