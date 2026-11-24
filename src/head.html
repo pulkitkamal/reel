@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Reel 8 Camera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Martian+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a hand-held cine camera seen from the back.
+   Brushed aluminium top plate with recessed readout windows, the viewfinder in the middle,
+   a ribbed black grip at the bottom with one red trigger. Single theme by choice. */
+:root{
+  color-scheme: dark;
+  --alu:#cdcac2;        /* top plate */
+  --alu-shade:#a19e96;  /* plate edge and engraving shadow */
+  --ink:#161514;        /* engraved lettering, recessed windows */
+  --body:#17181a;       /* grip */
+  --body-hi:#2b2d30;    /* raised parts on the grip */
+  --trigger:#e2472b;    /* record */
+  --lamp:#ffb648;       /* readouts */
+  --paper:#efeee9;      /* light text on dark */
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --mono:"Martian Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:#0b0b0c;color:var(--paper);font-family:var(--mono);font-size:13px;
+  display:flex;justify-content:center;overflow:hidden;touch-action:manipulation;
+  -webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+[hidden]{display:none !important}
+
+#cam{position:relative;width:100%;max-width:520px;height:100%;display:flex;flex-direction:column;
+  background:var(--body);overflow:hidden}
+
+/* ---------- top plate ---------- */
+.plate{flex:none;display:flex;gap:10px;align-items:flex-end;padding:10px 14px 12px;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,.05) 1px 2px,transparent 2px 4px),
+    linear-gradient(180deg,#dcd9d2,var(--alu) 45%,#b9b6ae);
+  border-bottom:2px solid var(--alu-shade);box-shadow:0 2px 0 rgba(0,0,0,.6)}
+.ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctl.grow{flex:1}
+.eng{white-space:nowrap;font-family:var(--display);font-weight:800;font-size:11px;letter-spacing:.16em;color:var(--ink);
+  text-shadow:0 1px 0 rgba(255,255,255,.55);padding-left:2px}
+.win{height:44px;border-radius:7px;background:var(--ink);color:var(--lamp);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.6);
+  display:flex;align-items:center;justify-content:center;gap:2px;font-weight:600}
+button.win{padding:0 14px;min-width:68px;font-size:16px}
+button.win:active,.win button:active{filter:brightness(1.5)}
+button.win:disabled{opacity:.45}
+.win small{font-size:9px;font-weight:400;margin-left:4px;opacity:.8}
+.expo{justify-content:space-between;padding:0 2px}
+.expo button{width:40px;height:44px;display:grid;place-items:center;font-size:20px;color:var(--lamp)}
+.expo #evVal{flex:1;text-align:center;font-size:16px;font-variant-numeric:tabular-nums}
+.expo .sep{width:1px;height:22px;background:#4a4640}
+#lockBtn svg{width:19px;height:19px}
+#lockBtn[aria-pressed="true"]{color:var(--trigger)}
+
+/* stock drawer */
+.drawer{flex:none;display:flex;flex-direction:column;gap:6px;padding:8px 14px;background:#0f0f10;border-bottom:1px solid #000}
+.drow{display:flex;gap:6px}
+.drawer button{flex:1;height:40px;border-radius:6px;background:var(--body-hi);font-weight:600;color:var(--paper);font-size:12px}
+.drawer button:disabled{opacity:.45}
+#formatRow button{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:.08em;text-transform:uppercase}
+.drawer button[aria-pressed="true"]{background:var(--lamp);color:var(--ink)}
+
+/* ---------- viewfinder ---------- */
+.finder{position:relative;flex:1;min-height:0;background:#000}
+#view{width:100%;height:100%;display:block;object-fit:contain}
+.rec{position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;
+  background:rgba(0,0,0,.6);font-weight:600;font-variant-numeric:tabular-nums}
+.rec i{width:10px;height:10px;border-radius:50%;background:var(--trigger);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.15}}
+.chip{position:absolute;top:12px;left:12px;height:36px;padding:0 12px;border-radius:6px;background:rgba(0,0,0,.6);
+  color:var(--paper);font-size:12px}
+.zoomRead{position:absolute;bottom:12px;right:12px;padding:5px 9px;border-radius:6px;background:rgba(0,0,0,.6);
+  font-variant-numeric:tabular-nums;transition:opacity .3s}
+.zoomRead.off{opacity:0}
+.card{position:absolute;left:14px;right:14px;bottom:14px;padding:14px;border-radius:10px;
+  background:rgba(14,14,15,.9);border:1px solid #3a3b3e;display:flex;flex-direction:column;gap:12px}
+.card p{margin:0;line-height:1.5;font-size:12px;color:var(--paper)}
+.card .row{display:flex;gap:8px;flex-wrap:wrap}
+.card .row button,.card .row label{flex:1 1 130px;height:44px;border-radius:7px;display:grid;place-items:center;
+  font-weight:600;font-size:12px;cursor:pointer;text-align:center}
+.primary{background:var(--lamp);color:var(--ink)}
+.second{background:var(--body-hi);color:var(--paper)}
+.card .x{position:absolute;top:4px;right:4px;width:36px;height:36px;font-size:18px;color:#9a9a9a}
+.toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:82%;padding:10px 14px;border-radius:8px;
+  background:rgba(0,0,0,.82);text-align:center;line-height:1.45;pointer-events:none;transition:opacity .25s}
+.toast.off{opacity:0}
+
+/* ---------- grip ---------- */
+.grip{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 16px 20px;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 2px,transparent 2px 7px),
+    linear-gradient(180deg,#232427,var(--body));
+  border-top:2px solid #000}
+.round{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3b3d41,#1b1c1e 70%);
+  box-shadow:0 2px 0 #000,inset 0 1px 0 rgba(255,255,255,.12);display:grid;place-items:center;color:var(--paper)}
+.round:active{transform:translateY(1px)}
+.round svg{width:24px;height:24px}
+.round .n{position:absolute;margin:-34px 0 0 34px;min-width:18px;height:18px;border-radius:9px;background:var(--lamp);
+  color:var(--ink);font-size:10px;font-weight:600;display:grid;place-items:center;padding:0 4px}
+.trigger{width:92px;height:92px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 35% 30%,#e9e6df,var(--alu-shade) 75%);
+  box-shadow:0 3px 0 #000,inset 0 0 0 3px rgba(0,0,0,.25);display:grid;place-items:center}
+.trigger b{width:66px;height:66px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#ff7a5c,var(--trigger) 60%,#a82a14);
+  box-shadow:inset 0 -3px 6px rgba(0,0,0,.35);transition:border-radius .15s,width .15s,height .15s}
+.trigger:active b{filter:brightness(.85)}
+.trigger[aria-pressed="true"] b{width:34px;height:34px;border-radius:7px}
+.rocker{display:flex;height:54px;border-radius:10px;overflow:hidden;
+  background:linear-gradient(180deg,#dcd9d2,#b0ada5);box-shadow:0 2px 0 #000}
+.rocker button{width:52px;font-family:var(--display);font-weight:800;font-size:24px;color:var(--ink);
+  text-shadow:0 1px 0 rgba(255,255,255,.5);touch-action:none}
+.rocker button+button{border-left:2px solid var(--alu-shade)}
+.rocker button:active{background:rgba(0,0,0,.18)}
+
+/* ---------- sheets ---------- */
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:5;background:#101011;border-top:2px solid var(--alu-shade);
+  border-radius:16px 16px 0 0;padding:14px 18px 22px;display:flex;flex-direction:column;gap:16px;max-height:92%;overflow-y:auto}
+.sheet.full{top:0;border-radius:0;border-top:0;max-height:none}
+.sheet h2{margin:0;font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:.08em}
+.head{display:flex;align-items:center;justify-content:space-between}
+.head button{width:44px;height:44px;border-radius:50%;background:var(--body-hi);font-size:20px}
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.field>span,.field>label{font-size:13px}
+.field output{color:var(--lamp);font-variant-numeric:tabular-nums}
+.seg{display:flex;gap:4px;padding:4px;border-radius:9px;background:#1d1e20}
+.seg button{flex:1;min-width:64px;height:38px;border-radius:6px;color:#b9b8b3}
+.seg button[aria-pressed="true"]{background:var(--lamp);color:var(--ink);font-weight:600}
+.seg.dim{opacity:.4}
+.switch{width:56px;height:32px;border-radius:16px;background:#3a3b3e;position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--paper);transition:left .15s}
+.switch[aria-checked="true"]{background:var(--lamp)}
+.switch[aria-checked="true"]::after{left:27px}
+.switch:disabled{opacity:.4}
+.slide{display:flex;flex-direction:column;gap:8px}
+input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);background:transparent}
+.clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.clip{background:#1d1e20;border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+.clip video{width:100%;aspect-ratio:3/4;object-fit:contain;background:#000;display:block}
+.clip .meta{padding:8px;font-size:11px;color:#b9b8b3}
+.clip .row{display:flex;gap:6px;padding:0 8px 8px}
+.clip .row button{flex:1;height:40px;border-radius:6px;font-size:12px;font-weight:600}
+.note{margin:0;font-size:12px;line-height:1.5;color:#b9b8b3}
+.srcvid{position:absolute;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none}
+@supports (height:100dvh){html,body{height:100dvh}}
+@media (prefers-reduced-motion:reduce){.rec i{animation:none}*{transition:none !important}}
+@media (max-height:620px){.grip{padding:10px 16px 12px}.trigger{width:76px;height:76px}.trigger b{width:54px;height:54px}}
+@media (orientation:landscape) and (max-height:540px){
+  #cam{max-width:none;flex-direction:row}
+  .plate{flex-direction:column;align-items:stretch;justify-content:center;gap:10px;width:140px;padding:8px 10px;
+    border-bottom:0;border-right:2px solid var(--alu-shade);box-shadow:2px 0 0 rgba(0,0,0,.6)}
+  .ctl.grow{flex:none}
+  .expo{display:grid;grid-template-columns:1fr 1fr 1fr;height:auto;padding:0 2px}
+  .expo #lockBtn{grid-column:1/4;width:100%;height:34px;border-bottom:1px solid #4a4640}
+  .expo .sep{display:none}
+  .expo button{width:100%;height:40px}
+  .expo #evVal{align-self:center;font-size:14px}
+  .drawer{position:absolute;left:140px;top:0;z-index:4;width:min(380px,calc(100% - 280px));border-radius:0 0 10px 0;border-right:1px solid #000}
+  .finder{min-width:0}
+  .grip{display:grid;grid-template-columns:1fr 1fr;align-content:center;justify-items:center;gap:12px 8px;width:140px;padding:8px 10px;
+    border-top:0;border-left:2px solid #000}
+  .grip .trigger,.grip .rocker{grid-column:1/3}
+  .trigger{width:76px;height:76px}.trigger b{width:54px;height:54px}
+  .sheet{left:140px;right:140px}
+  .sheet.full{left:0;right:0}
+}
+</style>
+</head>
+<body>
+<div id="cam">
+
+  <header class="plate">
+    <div class="ctl">
+      <span class="eng" id="formatEng">SUPER 8</span>
+      <button class="win" id="stockBtn" aria-expanded="false" aria-controls="stockDrawer">200T</button>
+    </div>
+    <div class="ctl grow">
+      <span class="eng">EXPOSURE</span>
+      <div class="win expo">
+        <button id="lockBtn" aria-pressed="false" aria-label="Lock exposure"></button>
+        <span class="sep"></span>
+        <button id="evDown" aria-label="Darker">&minus;</button>
+        <span id="evVal">0.0</span>
+        <button id="evUp" aria-label="Brighter">+</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span class="eng">SPEED</span>
+      <button class="win" id="fpsBtn" aria-label="Frames per second">18<small>FPS</small></button>
+    </div>
+  </header>
+
+  <div class="drawer" id="stockDrawer" hidden>
+    <div class="drow" id="formatRow" role="group" aria-label="Format"><button data-v="s8">Super 8</button><button data-v="s16">Super 16</button><button data-v="vhs">VHS</button></div>
+    <div class="drow" id="stockRow" role="group" aria-label="Film or tape"></div>
+  </div>
+
+  <main class="finder" id="finder">
+    <canvas id="view" width="1080" height="1440"></canvas>
+    <button class="chip" id="srcChip" hidden>Change clip</button>
+    <div class="rec" id="recLamp" hidden><i></i><span id="recTime">00:00</span></div>
+    <div class="zoomRead off" id="zoomRead">1.0&times;</div>
+    <div class="card" id="srcCard" hidden>
+      <button class="x" id="cardClose" aria-label="Close" hidden>&times;</button>
+      <p id="cardText"></p>
+      <div class="row">
+        <label class="primary" for="shootInput">Shoot a clip</label>
+        <label class="second" for="pickInput">Choose a clip</label>
+        <button class="second" id="liveBtn" hidden>Try live camera</button>
+      </div>
+    </div>
+    <div class="toast off" id="toast" role="status"></div>
+  </main>
+
+  <footer class="grip">
+    <button class="round" id="galleryBtn" aria-label="Open clips">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="7" width="14" height="13" rx="2"/><path d="M7 4h12a2 2 0 0 1 2 2v11"/><path d="M8 11.5v4l3.5-2z" fill="currentColor"/></svg>
+      <span class="n" id="clipCount" hidden>0</span>
+    </button>
+    <button class="round" id="settingsBtn" aria-label="Open settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+    </button>
+    <button class="trigger" id="trigger" aria-pressed="false" aria-label="Start recording"><b></b></button>
+    <div class="rocker" role="group" aria-label="Zoom">
+      <button id="zoomW" aria-label="Zoom out">W</button>
+      <button id="zoomT" aria-label="Zoom in">T</button>
+    </div>
+  </footer>
+
+  <section class="sheet" id="settings" hidden aria-label="Settings">
+    <div class="head"><h2>SETTINGS</h2><button id="settingsClose" aria-label="Close settings">&times;</button></div>
+    <div class="field"><span>Camera</span>
+      <div class="seg" id="facingSeg"><button data-v="environment">Rear</button><button data-v="user">Front</button></div>
+    </div>
+    <div class="field"><span id="overLabel">Overscan (show film edge)</span>
+      <button class="switch" id="overSwitch" role="switch" aria-checked="false" aria-labelledby="overLabel"></button>
+    </div>
+    <div class="seg dim" id="sideSeg"><button data-v="2">Top</button><button data-v="3">Bottom</button><button data-v="0">Left</button><button data-v="1">Right</button></div>
+    <div class="field"><span id="burnLabel">Film burn at start of shot</span>
+      <button class="switch" id="burnSwitch" role="switch" aria-checked="true" aria-labelledby="burnLabel"></button>
+    </div>
+    <p class="note" id="filmOnlyNote" hidden>Overscan and film burn are for film only. They are off for VHS.</p>
+    <div class="slide">
+      <div class="field"><label for="filterRange">Color filter</label><output id="filterOut" for="filterRange">None</output></div>
+      <input type="range" id="filterRange" min="0" max="8" step="1" value="4">
+    </div>
+    <div class="slide">
+      <div class="field"><label for="speedRange">W/T zoom speed</label><output id="speedOut" for="speedRange">1.0&times;</output></div>
+      <input type="range" id="speedRange" min="0.4" max="2" step="0.1" value="1">
+    </div>
+  </section>
+
+  <section class="sheet full" id="gallery" hidden aria-label="Clips">
+    <div class="head"><h2>CLIPS</h2><button id="galleryClose" aria-label="Close clips">&times;</button></div>
+    <p class="note" id="galleryNote">No clips yet. Press the red button to record one.</p>
+    <div class="clips" id="clips"></div>
+  </section>
+
+  <input type="file" id="shootInput" accept="video/*" capture="environment" hidden>
+  <input type="file" id="pickInput" accept="video/*" hidden>
+  <video id="srcVideo" class="srcvid" playsinline muted></video>
+</div>
+
