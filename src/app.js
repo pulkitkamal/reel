@@ -34,7 +34,7 @@ const FILTERS=[
 const ACTIVE=["s8"];
 
 /* ---------- state ---------- */
-const S={colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
+const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
   facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
@@ -56,10 +56,11 @@ try{
   if(saved.lensFlare===false) S.lens=false;
   if(saved.movement===false) S.move=false;
   if(saved.colour==="spektrafilm") S.colour=1;
+  if(saved.grainTry===0||saved.grainTry===1) S.grain=saved.grainTry;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8"}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -213,7 +214,7 @@ const FS_FILM=COMMON+`uniform sampler2D uP,uGlow,uNoise,uDustTex,uFlare;
 uniform vec4 uDp[4],uDq[4],uSc[6],uSd[6],uLk,uLk2;
 uniform vec3 uLkWb;
 uniform vec2 uOut,uWeave,uOff1,uOff2;
-uniform vec3 uWb,uBlack,uWhite,uGam,uKc;uniform sampler2D uLut;uniform float uLutOn;
+uniform vec3 uWb,uBlack,uWhite,uGam,uKc;uniform sampler2D uLut,uGrainTex;uniform float uLutOn,uGm,uGk,uGrho,uGskew;uniform vec4 uGrot;uniform vec2 uJit;
 uniform float uSeed,uEv,uSat,uK,uGrain,uGs,uHal,uBloom,uBw,uFlicker,uOver,uSide,uFmt,uVig,uCa,uCorner,uT,uE,uFl,uFlash,uDsz,uGain,uOff,uSh,uHd,uVexp;
 // second colour choice: look the colour up in a table (33 steps a side, laid out as 33 tiles in a row, one for each step of blue)
 vec3 lut3(vec3 c){
@@ -271,10 +272,24 @@ void main(){
   vec2 uv=vec2(p.x,1.-p.y);
   vec2 cu=uv-.5;
   float r2=dot(cu,cu)*2.;
+  // New grain (uGm = 2). Real grain is what the picture is made of, so it is looked up first: it nudges where the picture is read
+  // (edges come out a hair ragged and alive, as on film) and is added later, layer by layer.
+  // No two places in a frame share a pattern: the reading point drifts slowly across the frame, and every frame is turned and moved at random.
+  vec3 f1=vec3(0.),f2=vec3(0.),f3=vec3(0.);float mtl=0.;vec2 jit=vec2(0.);
+  if(uGm>1.5){
+    vec2 gp=P/(1024.*uGs);
+    vec2 wq=(texture2D(uGrainTex,gp/53.+uOff2).rg-.5)*(18./1024.);
+    vec2 q0=vec2(dot(uGrot.xy,gp),dot(uGrot.zw,gp))+uOff1+wq;
+    f1=texture2D(uGrainTex,q0).rgb-.5;                           // fine grain, a pattern of its own for each colour layer
+    f2=texture2D(uGrainTex,q0.yx*.59+uOff2.yx).rgb-.5;           // clumps, about 1.7 times larger
+    f3=texture2D(uGrainTex,q0*1.19+vec2(.613,.237)).rgb-.5;      // a little finer
+    mtl=texture2D(uGrainTex,gp/7.3+uOff2*1.7).g-.5;              // slow unevenness
+    jit=vec2(f1.r,f1.b)*uJit;
+  }
   vec3 c;
-  c.r=texture2D(uP,uv+cu*uCa*r2).r;
-  c.g=texture2D(uP,uv).g;
-  c.b=texture2D(uP,uv-cu*uCa*r2).b;
+  c.r=texture2D(uP,uv+jit+cu*uCa*r2).r;
+  c.g=texture2D(uP,uv+jit).g;
+  c.b=texture2D(uP,uv+jit-cu*uCa*r2).b;
   c=pow(c,vec3(2.2));
   vec3 gw=texture2D(uGlow,uv).rgb;gw*=gw;
   float gl1=dot(gw,vec3(.3,.5,.2));
@@ -306,11 +321,25 @@ void main(){
   if(uBw>.5)g=vec3(dot(g,vec3(.299,.587,.114)))*vec3(1.,.99,.955);
   // Grain, measured against a reference clip: one clumpy pattern shared by all three colours, a slow unevenness about seven grains wide,
   // and only soft colour clouds on top (film's three colour layers each have their own grain, but from a normal distance it reads as a gentle tint, not as coloured dots)
-  vec3 n1=texture2D(uNoise,gq+uOff1).rgb-.5;
-  vec3 n2=texture2D(uNoise,gq.yx/7.+uOff2).rgb-.5;
-  vec3 n3=texture2D(uNoise,gq/2.05+uOff2.yx+.37).rgb-.5;
-  vec3 gn=vec3(n1.g+n2.g*.235)*vec3(1.,1.,.92)+n3*vec3(.46,.36,.38)*(1.-uBw);
-  g+=gn*uGrain*.725*(1.-exp(-max(le,0.)/.2));
+  if(uGm>1.5){
+    // Strength follows the brightness of each colour layer: most in the middle tones, fading towards black and towards white
+    // (measured on the reference clip, and what a physical grain model gives). Dark tones get sparse light specks, bright tones sparse dark ones.
+    const float iS=5.32;                                           // the grain texture's spread, turned into units of one
+    float Ls=(.80*f1.g+.52*f2.g+.30*f3.g+.30*mtl)*iS;              // the part all three layers share
+    vec3 Ic=vec3(.80*f1.r+.60*f2.r,.80*f3.r+.60*f3.b,.74*f1.b+.67*f2.b)*iS;   // each layer's own grain; blue a little coarser
+    vec3 nn=mix(sqrt(uGrho)*vec3(Ls)+sqrt(1.-uGrho)*Ic,vec3(Ls),uBw);
+    vec3 v=clamp(mix(g,vec3(le),uBw),0.,1.);
+    vec3 A=2.296*pow(v,vec3(.62))*pow(1.-v,vec3(.58));
+    vec3 a=clamp(uGskew*(1.-2.*v)/sqrt(v*(1.-v)+.02)/5.5,-.3,.3);
+    nn=(nn+a*(nn*nn-1.))/sqrt(1.+2.*a*a);
+    g+=nn*A*uGrain*uGk;
+  }else{
+    vec3 n1=texture2D(uNoise,gq+uOff1).rgb-.5;
+    vec3 n2=texture2D(uNoise,gq.yx/7.+uOff2).rgb-.5;
+    vec3 n3=texture2D(uNoise,gq/2.05+uOff2.yx+.37).rgb-.5;
+    vec3 gn=vec3(n1.g+n2.g*.235)*vec3(1.,1.,.92)+n3*vec3(.46,.36,.38)*(1.-uBw);
+    g+=gn*uGrain*uGk*(1.-exp(-max(le,0.)/.2));
+  }
   // film damage, laid over the grain: a few light hairs and specks, and hair-thin dark scratches along the film's direction of travel
   vec2 lp=pl*rsz;
   float u1=m/1080.;
@@ -423,7 +452,7 @@ void main(){
   gl_FragColor=vec4(clamp(c,0.,1.),1.);
 }`;
 
-let glOK=false,PR={},srcTex=null,noiseTex=null,dustTex=null,T={};
+let glOK=false,PR={},srcTex=null,noiseTex=null,grainTex=null,dustTex=null,T={};
 function makeProg(fsSrc){
   const mk=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
     if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(s));return null;}return s;};
@@ -481,6 +510,22 @@ function makeNoise(){
       s+=raw[(((y+j+n)%n)*n+((x+i+n)%n))*3+c]*w;
     }
     out[(y*n+x)*4+c]=Math.max(0,Math.min(255,128+s*2.05*52));
+  }
+  for(let i=3;i<out.length;i+=4) out[i]=255;
+  const t=makeTex(true);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,n,n,0,gl.RGBA,gl.UNSIGNED_BYTE,out);
+  return t;
+}
+function makeGrainTex(){
+  // 1024 x 1024, three independent soft random patterns (one in each colour), spread of 48 steps around the middle
+  const n=1024,m=n*n,out=new Uint8Array(m*4),a=new Float32Array(m),b=new Float32Array(m);
+  for(let c=0;c<3;c++){
+    for(let i=0;i<m;i++) a[i]=(Math.random()+Math.random()+Math.random()+Math.random()-2)*1.732;
+    for(let y=0;y<n;y++){const r=y*n;for(let x=0;x<n;x++) b[r+x]=.25*a[r+((x+n-1)&1023)]+.5*a[r+x]+.25*a[r+((x+1)&1023)];}
+    for(let y=0;y<n;y++){const r=y*n,u=((y+n-1)&1023)*n,d=((y+1)&1023)*n;for(let x=0;x<n;x++){
+      const v=(.25*b[u+x]+.5*b[r+x]+.25*b[d+x])*2.667;             // 2.667 brings the spread back to one after the softening
+      out[(r+x)*4+c]=Math.max(0,Math.min(255,Math.round(127.5+v*48)));}}
   }
   for(let i=3;i<out.length;i+=4) out[i]=255;
   const t=makeTex(true);
@@ -740,7 +785,7 @@ function initGL(){
   const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
   gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
-  srcTex=makeTex(false);noiseTex=makeNoise();dustTex=makeDust();
+  srcTex=makeTex(false);noiseTex=makeNoise();grainTex=makeGrainTex();dustTex=makeDust();
   return true;
 }
 
@@ -787,6 +832,8 @@ const R=Math.random;
 // One film frame is built in two steps. "Exposing" puts a camera picture into the small picture buffer; a second or third picture can be
 // blended in, which is what smears movement the way a film shutter does. "Developing" then turns that buffer into the finished frame.
 let FG=null;
+const GRAIN=[{gs:1.15,k:.725},{gs:1.12,k:.80},{gs:.93,k:.0685,rho:.72,skew:.35,jit:.5}];   // tried side by side in Settings; [2] is the new one
+const ROT=[[1,0,0,1],[0,1,-1,0],[-1,0,0,-1],[0,-1,1,0],[-1,0,0,1],[1,0,0,-1],[0,1,1,0],[0,-1,-1,0]].map(r=>new Float32Array(r));   // the grain is turned or flipped a different way each frame
 // Second colour choice (Settings): colour tables made with spektrafilm by Andrea Volpato, CC BY-SA 4.0 (see luts.js). Black and white has no table.
 const LUT={tex:{},asked:false};
 function loadLuts(){
@@ -868,12 +915,12 @@ function develop(now){
     rollDamage(F.dmg);rollFilmFlare();
     if(dmgHook) dmgHook(SCRP,SCRQ,DUSTP,DUSTQ);
     const wv=F.weave;
-    bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);bind(5,lt||noiseTex);
-    use(PR.film,{uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:lt?f:st.wb,uFlash:FLR.mul,uLut:{tex:5},uLutOn:lt?1:0,
+    bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);bind(5,lt||noiseTex);bind(6,grainTex);const GM=GRAIN[S.grain]||GRAIN[2],gpx=Math.min(cv.width,cv.height)/1080;
+    use(PR.film,{uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:lt?f:st.wb,uFlash:FLR.mul,uLut:{tex:5},uLutOn:lt?1:0,uGrainTex:{tex:6},uGm:S.grain,uGk:GM.k,uGrho:GM.rho||1,uGskew:GM.skew||0,uGrot:ROT[(R()*8)|0],uJit:[(GM.jit||0)*st.grain*F.grainMul*10.64*gpx/cv.width,(GM.jit||0)*st.grain*F.grainMul*10.64*gpx/cv.height],
       uDp:DUSTP,uDq:DUSTQ,uSc:SCRP,uSd:SCRQ,uDsz:F.dsz,uOut:[cv.width,cv.height],
       uWeave:[((R()-.5)*.0012+Math.sin(now/1100)*.0006)*wv,((R()-.5)*.0014+Math.sin(now/700)*.0008)*wv],
       uOff1:off1,uOff2:off2,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uBlack:st.black,uWhite:st.white,
-      uSeed:seed,uEv:S.ev,uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uVexp:F.vexp,uGrain:st.grain*F.grainMul,uGs:F.gs*Math.min(cv.width,cv.height)/1080,
+      uSeed:seed,uEv:S.ev,uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uVexp:F.vexp,uGrain:st.grain*F.grainMul,uGs:GM.gs*gpx,
       uHal:st.hal,uBloom:st.bloom,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1),
       uOver:S.overscan?1:0,uSide:S.overscan?S.side:0,uFmt:S.format==="s16"?1:0,uVig:F.vig,uCa:F.ca,uCorner:F.corner,
       uT:geo.t,uE:geo.e});
@@ -1013,6 +1060,17 @@ function paintStatus(){
 /* ---------- sources ---------- */
 let liveStream=null,clipUrl=null;
 function stopLive(){if(liveStream){liveStream.getTracks().forEach(t=>t.stop());liveStream=null;}CZ.ok=false;if(MV.locked) mvUnlock();}
+// The phone's screen must not dim or lock while you are framing a shot. Asked again whenever the page comes back to the front.
+let wakeLock=null;
+async function keepAwake(){
+  try{
+    if(!navigator.wakeLock||wakeLock||document.visibilityState!=="visible") return;
+    wakeLock=await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release",()=>{wakeLock=null;});
+  }catch(e){wakeLock=null;}
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") keepAwake();});
+document.addEventListener("pointerdown",keepAwake,{passive:true});
 async function startLive(quiet){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(!quiet)toast("This browser can't open the camera here.");return false;}
   const want={video:{facingMode:S.facing,width:{ideal:1920},height:{ideal:1080}},audio:true};
@@ -1029,7 +1087,7 @@ async function startLive(quiet){
   try{await video.play();}catch(e){}
   mode="live";S.lock=false;paint();
   $("srcCard").hidden=true;$("srcChip").hidden=true;
-  mvReset();initCamZoom();
+  mvReset();initCamZoom();keepAwake();
   return true;
 }
 function loadClip(file){
@@ -1268,6 +1326,7 @@ function paint(){
   for(const b of $("stockRow").children) b.setAttribute("aria-pressed",b.textContent===S.stock);
   for(const b of $("facingSeg").children) b.setAttribute("aria-pressed",b.dataset.v===S.facing);
   for(const b of $("colourSeg").children) b.setAttribute("aria-pressed",+b.dataset.v===S.colour);
+  for(const b of $("grainSeg").children) b.setAttribute("aria-pressed",+b.dataset.v===S.grain);
   for(const b of $("sideSeg").children) b.setAttribute("aria-pressed",+b.dataset.v===S.side);
   $("sideSeg").classList.toggle("dim",!S.overscan||isVhs);
   $("overSwitch").setAttribute("aria-checked",S.overscan&&!isVhs);
@@ -1366,6 +1425,10 @@ $("colourSeg").onclick=e=>{
   if(recording){toast("Stop recording to change this.");return;}
   S.colour=+v;remember();paint();if(S.colour) loadLuts();
 };
+$("grainSeg").onclick=e=>{
+  const v=e.target.dataset&&e.target.dataset.v;if(v===undefined) return;
+  S.grain=+v;remember();paint();
+};
 $("sideSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(v===undefined||S.format==="vhs") return;
   if(recording){toast("Stop recording to change this.");return;}
@@ -1394,7 +1457,7 @@ window.addEventListener("resize",()=>sizeCanvas(srcAspect));
 requestAnimationFrame(tick);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,nominalRate,rateFits,groupStart,shutterWeight,
+window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,nominalRate,rateFits,groupStart,shutterWeight,
   get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
   blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";$("srcCard").hidden=true;},snap(){return new Promise(r=>{snapCb=r;});},
