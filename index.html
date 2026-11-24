@@ -70,7 +70,7 @@ button.win:disabled{opacity:.45}
 
 /* ---------- viewfinder ---------- */
 .finder{position:relative;flex:1;min-height:0;background:#000;touch-action:none}
-#view{width:100%;height:100%;display:block;object-fit:contain}
+#view{position:absolute;left:0;top:0;display:block}   /* its size and place are set by the script, pixel for pixel where it can be */
 .rec{position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;
   background:rgba(0,0,0,.6);font-weight:600;font-variant-numeric:tabular-nums}
 .rec i{width:10px;height:10px;border-radius:50%;background:var(--trigger);animation:blink 1s steps(2) infinite}
@@ -307,7 +307,7 @@ const TAPES={
   "WORN":{soft:1.7,noise:.120,wear:1.00,sat:.76}
 };
 const FORMATS={
-  s8: {name:"SUPER 8", aspect:4/3,fps:[18,24],stocks:Object.keys(FILM_STOCKS),pShort:520,gs:1.1,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.36,halo:1.1,dsz:1.0,dmg:1.0},
+  s8: {name:"SUPER 8", aspect:4/3,fps:[18,24],stocks:Object.keys(FILM_STOCKS),pShort:520,gs:1.12,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.36,halo:1.1,dsz:1.0,dmg:1.0},
   s16:{name:"SUPER 16",aspect:5/3,fps:[24,25],stocks:Object.keys(FILM_STOCKS),pShort:880,gs:.9,grainMul:.6,weave:.32,vig:.24,vexp:1.25,ca:.0014,corner:.012,strip:.13,edge:.030,soft:.55,halo:1.0,dsz:.65,dmg:.6},
   vhs:{name:"VHS",     aspect:4/3,fps:[25,30],stocks:Object.keys(TAPES),      pShort:480}
 };
@@ -490,9 +490,9 @@ float sig(float x,float k){
 // A little light fogs the red layer first, more reaches green, a lot reaches blue: red, then orange, then yellow, then white.
 vec3 leak(vec2 q){
   float sd=uLk.w;
-  float n1=texture2D(uNoise,vec2(q.y*.021+sd,sd*.37)).r;
-  float n2=texture2D(uNoise,vec2(q.x*.016+sd*.61,q.y*.030+sd*.13)).g;
-  float n3=texture2D(uNoise,vec2(q.x*.07+sd*.29,q.y*.006+sd*.83)).b;
+  float n1=texture2D(uNoise,vec2(q.y*.0105+sd,sd*.37)).r;
+  float n2=texture2D(uNoise,vec2(q.x*.008+sd*.61,q.y*.015+sd*.13)).g;
+  float n3=texture2D(uNoise,vec2(q.x*.035+sd*.29,q.y*.003+sd*.83)).b;
   float xn=max(q.x,-.25),xf=max(1.-q.x,-.25);
   float bump=1.+1.4*exp(-pow((q.y-uLk.y)/.28,2.));
   float E=uLk.x*exp(-xn/max(uLk.z*(.35+1.3*n1)*bump,.02));
@@ -551,7 +551,7 @@ void main(){
   c=mix(vec3(l),c,uSat);
   c*=1.-.14*clamp(length(c-l)/(l+.05),0.,1.)*(1.-uBw);
   vec3 g=pow(clamp(c,0.,8.),vec3(1./2.2));
-  vec2 gq=P/(256.*uGs);
+  vec2 gq=P/(512.*uGs);
   g*=uGain;
   vec3 xo=g-uOff;
   g=.5*(xo+sqrt(xo*xo+.0025))/(1.-uOff);
@@ -563,14 +563,17 @@ void main(){
   g=mix(g,vec3(le),smoothstep(.72,1.05,le)*uHd);
   g=uBlack+g*(uWhite-uBlack);
   if(uBw>.5)g=vec3(dot(g,vec3(.299,.587,.114)))*vec3(1.,.99,.955);
+  // Grain, measured against a reference clip: one clumpy pattern shared by all three colours, a slow unevenness about seven grains wide,
+  // and only soft colour clouds on top (film's three colour layers each have their own grain, but from a normal distance it reads as a gentle tint, not as coloured dots)
   vec3 n1=texture2D(uNoise,gq+uOff1).rgb-.5;
-  vec3 n2=texture2D(uNoise,gq.yx*1.31+uOff2).rgb-.5;
-  vec3 gn=mix(vec3(n1.g),n1,.7*(1.-uBw))*.8+vec3(n2.g)*.6;
-  g+=gn*vec3(1.15,.95,.9)*uGrain*1.117*(1.-exp(-max(le,0.)/.2));
+  vec3 n2=texture2D(uNoise,gq.yx/7.+uOff2).rgb-.5;
+  vec3 n3=texture2D(uNoise,gq/2.05+uOff2.yx+.37).rgb-.5;
+  vec3 gn=vec3(n1.g+n2.g*.235)*vec3(1.,1.,.92)+n3*vec3(.46,.36,.38)*(1.-uBw);
+  g+=gn*uGrain*.80*(1.-exp(-max(le,0.)/.2));
   // film damage, laid over the grain: a few light hairs and specks, and hair-thin dark scratches along the film's direction of travel
   vec2 lp=pl*rsz;
   float u1=m/1080.;
-  float la=0.;
+  vec3 lc=vec3(0.);
   for(int i=0;i<4;i++){
     vec4 a=uDp[i];vec4 b=uDq[i];
     vec2 q=lp-a.xy*rsz;
@@ -579,22 +582,28 @@ void main(){
     vec2 r=vec2(q.x*cs+q.y*sn,-q.x*sn+q.y*cs)/hs;
     float ins=step(abs(r.x),.98)*step(abs(r.y),.98);
     vec2 cell=vec2(mod(b.x,8.),floor(b.x/8.));
-    la=max(la,texture2D(uDustTex,(cell+clamp(r,-.98,.98)*.5+.5)/vec2(8.,4.)).r*b.y*ins);
+    lc=max(lc,texture2D(uDustTex,(cell+clamp(r,-.98,.98)*.5+.5)/vec2(8.,4.)).rgb*b.y*ins);
   }
+  float la=max(lc.r,max(lc.g,lc.b));
   float da=0.;
-  float pitch=uOver>.5?1.:.97;
   for(int i=0;i<6;i++){
     vec4 a=uSc[i];vec4 b=uSd[i];
-    float line=step(abs(lp.x-a.x*rsz.x),.5*pitch*b.z);      // exactly one pixel column wide, crisp, like a real scratch on a scan
-    float yy=lp.y-a.y*rsz.y;
-    float len=a.z*m;
-    float seg=smoothstep(0.,2.*u1,yy)*(1.-smoothstep(len-2.*u1,len,yy));
-    float cy=floor(yy/(2.4*u1));
-    float dots=max(step(.8,h1(vec2(cy,b.y))),step(.84,h1(vec2(floor(cy/5.),b.y+3.))));
-    da=max(da,line*seg*a.w*mix(1.,dots,b.x));
+    float yy=lp.y-a.y*rsz.y,len=a.z*m,dx=lp.x-a.x*rsz.x;
+    if(a.w>0.&&abs(dx)<4.*u1&&yy>-3.*u1&&yy<len+3.*u1){
+      // a real scratch is never a ruled line: it wanders a little, swells and thins, and fades in and out along its length
+      vec3 w1=texture2D(uNoise,vec2(b.y*.37,yy/(u1*22.*512.)+b.y)).rgb;        // slow changes along the scratch
+      vec3 w2=texture2D(uNoise,vec2(b.y*.61+.2,yy/(u1*1.8*512.)+b.y*1.7)).rgb; // quick changes: the beads of a dotted scratch
+      float cx=dx-(w1.r-.5)*1.6*u1-(w2.b-.5)*1.5*u1*b.x;                       // wander, well under a pixel either way; beads sit a little off line
+      float bead=max(smoothstep(.53,.61,w2.g),smoothstep(.66,.72,w1.r));       // where a bead sits; now and then a solid stretch
+      float wd=u1*b.z*mix(.26+.28*w1.g,.42+.7*smoothstep(.50,.72,w2.r),b.x);    // half width: a hairline, or beads of uneven size
+      float line=1.-smoothstep(wd-.45*u1,wd+.45*u1,abs(cx));
+      float seg=smoothstep(-1.5*u1,2.*u1,yy)*(1.-smoothstep(len-3.*u1,len+1.5*u1,yy));
+      float dens=mix(.55+.9*w1.b,bead*(.8+.6*w1.b),b.x);                  // solid scratch: uneven darkness; dotted: only the beads
+      da=max(da,line*seg*a.w*clamp(dens,0.,1.2));
+    }
   }
-  g*=mix(vec3(1.),mix(vec3(.45,.42,.30),vec3(.4),uBw),da);
-  g=mix(g,mix(vec3(.97,.94,.88),vec3(.95),uBw),la);
+  g*=mix(vec3(1.),mix(vec3(.45,.42,.30),vec3(.4),uBw),min(da,1.));
+  g=g*(1.-la)+mix(lc*vec3(.97,.95,.90),vec3(la*.95),uBw);
   vec3 outc=g;
   if(uOver>.5){
     vec3 nb=texture2D(uNoise,gq*1.7+uOff2).rgb-.5;
@@ -648,7 +657,7 @@ void main(){
     IQ+=smp(vec2(q.x-o,q.y-1./uLines*mod(float(i),2.))).yz;
   }
   IQ/=6.;
-  vec2 nq=vec2(vUv.x*uOut.x/(256.*5.),y*uLines/256.);
+  vec2 nq=vec2(vUv.x*uOut.x/(512.*5.),y*uLines/512.);
   vec3 n1=texture2D(uNoise,nq+uOff1).rgb-.5;
   vec3 n2=texture2D(uNoise,vec2(nq.x*.22,nq.y*.6)+uOff2).rgb-.5;
   Y+=n1.g*uNz*1.5;
@@ -722,7 +731,7 @@ function draw(t){
 function bind(unit,tex){gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,tex);}
 function makeNoise(){
   // soft-edged random clumps, so grain looks like grain and not like square pixels
-  const n=256,raw=new Float32Array(n*n*3),out=new Uint8Array(n*n*4);
+  const n=512,raw=new Float32Array(n*n*3),out=new Uint8Array(n*n*4);
   for(let i=0;i<raw.length;i++){let s=0;for(let k=0;k<4;k++)s+=Math.random();raw[i]=(s-2)/1.155;}
   for(let y=0;y<n;y++)for(let x=0;x<n;x++)for(let c=0;c<3;c++){
     let s=0;
@@ -740,35 +749,57 @@ function makeNoise(){
 }
 let dustCanvas=null;
 function makeDust(){
-  // one sheet of 32 small white marks (hairs, specks, lint), drawn once; the film shader stamps a few of them on each frame
-  const C=128,c=document.createElement("canvas");c.width=C*8;c.height=C*4;
+  // One sheet of 32 small light marks (hairs, specks, lint), drawn once; the film shader stamps a few of them on each frame.
+  // Drawn large and shrunk by the graphics chip, so even hair-thin lines stay smooth. The colour of each mark is stored with it.
+  const C=256,c=document.createElement("canvas");c.width=C*8;c.height=C*4;
   const x=c.getContext("2d");x.fillStyle="#000";x.fillRect(0,0,c.width,c.height);
-  x.strokeStyle="#fff";x.fillStyle="#fff";x.lineCap="round";x.lineJoin="round";
+  x.globalCompositeOperation="lighten";             // where strokes overlap, the stronger one wins instead of adding up
   const rnd=(a,b)=>a+Math.random()*(b-a);
-  function fibre(ox,oy,len,w,alpha,curl,sx,sy){
-    // a thin curling hair: walk forward while the turn rate drifts
-    let px=sx,py=sy,th=rnd(0,6.283),k=rnd(-curl,curl);const pts=[[px,py]];
-    for(let d=0;d<len;d+=2){
-      th+=k*2+rnd(-.12,.12);k=Math.max(-curl*1.6,Math.min(curl*1.6,k+rnd(-curl,curl)*.4));
-      const nx=px+Math.cos(th)*2,ny=py+Math.sin(th)*2;
-      if(nx<ox+10||nx>ox+C-10||ny<oy+10||ny>oy+C-10){th+=2.2;continue;}
-      px=nx;py=ny;pts.push([px,py]);
-    }
-    if(pts.length<3) return;
-    const path=(a,b)=>{
-      x.beginPath();x.moveTo(pts[a][0],pts[a][1]);
-      for(let i=a+1;i<b;i++){const p=pts[i],q=pts[Math.min(i+1,b-1)];x.quadraticCurveTo(p[0],p[1],(p[0]+q[0])/2,(p[1]+q[1])/2);}
-      x.stroke();
-    };
-    x.globalAlpha=alpha*.55;x.lineWidth=w*.7;path(0,pts.length);               // faint along the whole length
-    const a=Math.floor(pts.length*rnd(.05,.3)),b=Math.ceil(pts.length*rnd(.65,.97));
-    if(b-a>2){x.globalAlpha=alpha;x.lineWidth=w;path(a,b);}                     // stronger and thicker in the middle
+  function wave(){                                  // a smooth random curve from 0 to 1 along a mark
+    const p=[];for(let i=0;i<4;i++) p.push([rnd(.6,1)*(i?1/(i+1):1),rnd(.7,4.5)*(i+1),rnd(0,6.283)]);
+    let tot=0;for(const q of p) tot+=q[0];
+    return t=>{let v=0;for(const q of p) v+=q[0]*Math.sin(t*q[1]+q[2]);return .5+.5*v/tot;};
   }
-  function speck(cx,cy,r,alpha){
-    const tilt=rnd(0,3.14),sq=rnd(.45,1);          // uneven and a little stretched, never a neat round bead
-    x.globalAlpha=alpha;x.beginPath();
-    for(let i=0;i<6;i++){
-      const a=i/6*6.283,rr=r*rnd(.5,1.3),ux=Math.cos(a)*rr,uy=Math.sin(a)*rr*sq;
+  const TINTS=[[1,.97,.9],[1,.97,.9],[.9,.88,1],[.88,1,.9],[1,.95,.82],[.94,.94,1]];   // mostly warm white; some lean lilac, green or straw
+  function dab(px,py,r,a,tA,tB,mixT){
+    const R=tA[0]+(tB[0]-tA[0])*mixT,G=tA[1]+(tB[1]-tA[1])*mixT,B=tA[2]+(tB[2]-tA[2])*mixT,v=255*Math.max(0,Math.min(1,a));
+    x.fillStyle="rgb("+Math.round(v*R)+","+Math.round(v*G)+","+Math.round(v*B)+")";
+    x.beginPath();x.arc(px,py,Math.max(.35,r),0,6.2832);x.fill();
+  }
+  function fibre(ox,oy,len,wmax,amax,turn,sx,sy){
+    // A hair: it bends smoothly, often more at one end, sometimes reversing into an S; it is thickest somewhere along its middle,
+    // thins to nothing at the ends, and is brighter in some stretches than others. "turn" is how far it bends in all (radians).
+    const wK=wave(),wW=wave(),wA=wave(),wT=wave(),tA=TINTS[Math.floor(rnd(0,TINTS.length))],tB=TINTS[Math.floor(rnd(0,TINTS.length))];
+    const flip=Math.random()<.35?rnd(.3,.7):-1,peak=rnd(.3,.7),gap=Math.random()<.3?rnd(.15,.85):-1,hook=Math.random()<.25?rnd(.75,.93):2;
+    const pts=[];let px=0,py=0,th=rnd(0,6.283),x0=0,x1=0,y0=0,y1=0;
+    const n=Math.ceil(len/.7);
+    for(let i=0;i<n;i++){
+      const t=i/n;
+      let k=turn/len*(.25+1.5*wK(t*6.283));
+      if(flip>0) k*=Math.tanh((t-flip)*9);                 // bends one way, then the other
+      if(t>hook) k*=3.2;                                   // a tighter curl at one end, like a little hook
+      th+=k*.7;px+=Math.cos(th)*.7;py+=Math.sin(th)*.7;pts.push(px,py);
+      if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;
+    }
+    // keep it inside its own cell: shrink if it is too big, and centre it on the spot asked for
+    const room=C-52,sc=Math.min(1,room/Math.max(x1-x0,y1-y0,1));
+    let cxm=sx-(x0+x1)/2*sc,cym=sy-(y0+y1)/2*sc;
+    cxm+=Math.max(0,ox+26-(cxm+x0*sc))-Math.max(0,(cxm+x1*sc)-(ox+C-26));
+    cym+=Math.max(0,oy+26-(cym+y0*sc))-Math.max(0,(cym+y1*sc)-(oy+C-26));
+    for(let i=0;i<n;i++){
+      const t=i/n;
+      const taper=Math.pow(Math.max(0,1-Math.pow(Math.abs(t-peak)/Math.max(peak,1-peak),1.6)),.7);     // 1 at the thickest point, 0 at both ends
+      let al=amax*(.45+.55*wA(t*6.283))*Math.min(1,taper*3+.15);
+      if(gap>0) al*=.25+.75*Math.min(1,Math.abs(t-gap)*9);                                                   // a stretch where it nearly vanishes
+      dab(cxm+pts[i*2]*sc,cym+pts[i*2+1]*sc,wmax*.5*(.3+.7*taper)*(.6+.4*wW(t*6.283)),al,tA,tB,wT(t*6.283));
+    }
+  }
+  function speck(cx,cy,r,alpha,t){
+    const tilt=rnd(0,3.14),sq=rnd(.4,1);            // uneven and a little stretched, never a neat round bead
+    const v=255*alpha;x.fillStyle="rgb("+Math.round(v*t[0])+","+Math.round(v*t[1])+","+Math.round(v*t[2])+")";
+    x.beginPath();
+    for(let i=0;i<7;i++){
+      const a=i/7*6.283,rr=r*rnd(.45,1.3),ux=Math.cos(a)*rr,uy=Math.sin(a)*rr*sq;
       const X=cx+ux*Math.cos(tilt)-uy*Math.sin(tilt),Y=cy+ux*Math.sin(tilt)+uy*Math.cos(tilt);
       if(i) x.lineTo(X,Y); else x.moveTo(X,Y);
     }
@@ -776,25 +807,27 @@ function makeDust(){
   }
   for(let i=0;i<32;i++){
     const ox=(i%8)*C,oy=Math.floor(i/8)*C,cx=ox+C/2,cy=oy+C/2;
-    if(i<14){               // single hairs, from short arcs to long curls
-      const big=i<5;
-      fibre(ox,oy,big?rnd(45,85):rnd(16,40),rnd(1.0,1.9),rnd(.5,1),big?rnd(.06,.15):rnd(.05,.14),cx+rnd(-22,22),cy+rnd(-22,22));
-    }else if(i<26){         // specks: one to three tiny uneven grains, some with a short tail
-      const n=1+Math.floor(rnd(0,2.6));
+    if(i<14){               // single hairs: a few long curls, mostly short arcs and commas; many are faint
+      const big=i<4,faint=i>=9;
+      fibre(ox,oy,big?rnd(75,135):rnd(24,72),big?rnd(3.6,5.6):rnd(2.2,4.2),faint?rnd(.35,.6):rnd(.7,1),big?rnd(2.2,6.5):rnd(.5,3.6),cx+rnd(-30,30),cy+rnd(-30,30));
+    }else if(i<26){         // specks: one to three tiny uneven flecks, some with a hair-thin tail
+      const n=1+Math.floor(rnd(0,2.6)),t=TINTS[Math.floor(rnd(0,TINTS.length))];
       for(let j=0;j<n;j++){
-        const sx=cx+(n>1?rnd(-9,9):0),sy=cy+(n>1?rnd(-9,9):0);
-        speck(sx,sy,rnd(.8,i<20?1.5:2.1),rnd(.6,.95));
-        if(Math.random()<.3){x.lineWidth=rnd(.9,1.4);x.globalAlpha=rnd(.5,.9);x.beginPath();x.moveTo(sx,sy);x.lineTo(sx+rnd(-8,8),sy+rnd(-8,8));x.stroke();}
+        const sx=cx+(n>1?rnd(-20,20):0),sy=cy+(n>1?rnd(-20,20):0);
+        speck(sx,sy,rnd(1.6,i<20?3.2:4.6),rnd(.55,.95),t);
+        if(Math.random()<.3) fibre(ox,oy,rnd(10,22),rnd(1.6,2.4),rnd(.4,.8),rnd(.2,1.2),sx+rnd(-5,5),sy+rnd(-5,5));
       }
-    }else{                  // lint: two or three short hairs tangled together
+    }else{                  // lint: two or three short fine hairs tangled together
       const n=2+Math.floor(rnd(0,1.99));
-      for(let j=0;j<n;j++) fibre(ox,oy,rnd(12,30),rnd(.9,1.6),rnd(.5,1),rnd(.1,.25),cx+rnd(-8,8),cy+rnd(-8,8));
+      for(let j=0;j<n;j++) fibre(ox,oy,rnd(20,50),rnd(2.0,3.4),rnd(.45,.9),rnd(1.2,5),cx+rnd(-12,12),cy+rnd(-12,12));
     }
   }
-  x.globalAlpha=1;dustCanvas=c;
+  x.globalCompositeOperation="source-over";dustCanvas=c;
   const t=makeTex(false);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
   return t;
 }
 // which marks land on this frame, and where (new every film frame)
@@ -811,8 +844,9 @@ function rollDamage(amount){
     const on=rr()<[.85,.7,.6,.45,.3][i]*amount,t=rr();
     const len=t<.6?.0065+rr()*.0125:t<.88?.02+rr()*.03:.05+rr()*.04;
     const str=t<.6?.5+rr()*.4:t<.88?.45+rr()*.35:.35+rr()*.3;      // the longer the line, the fainter it is
-    SCRP[i*4]=.02+rr()*.96;SCRP[i*4+1]=rr()*.97;SCRP[i*4+2]=len;SCRP[i*4+3]=on?str:0;
-    SCRQ[i*4]=(t>=.6&&rr()<.25)?1:0;SCRQ[i*4+1]=rr()*50;SCRQ[i*4+2]=1;
+    const dotted=t>=.6&&rr()<.25;
+    SCRP[i*4]=.02+rr()*.96;SCRP[i*4+1]=rr()*.97;SCRP[i*4+2]=len;SCRP[i*4+3]=on?(dotted?.75+rr()*.25:str):0;
+    SCRQ[i*4]=dotted?1:0;SCRQ[i*4+1]=rr()*50;SCRQ[i*4+2]=1;
   }
   const on=rr()<.05*amount;                   // rare: a long dotted trail down part of the frame
   SCRP[20]=.03+rr()*.94;SCRP[21]=rr()*.6;SCRP[22]=.12+rr()*.28;SCRP[23]=on?.7+rr()*.25:0;
@@ -972,11 +1006,30 @@ function initGL(){
 /* ---------- frame loop ---------- */
 const video=$("srcVideo");
 let srcAspect=.75;
+const finder=$("finder");
+let cvCss="";
 function sizeCanvas(aspect){
-  if(recording) return;
-  const a=FORMATS[S.format].aspect,long=Math.round(1080*a/2)*2;
-  const w=aspect>=1?long:1080,h=aspect>=1?1080:long;
-  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+  // Draw the picture at exactly the size it has on this screen, pixel for pixel, whenever that is a sensible video size.
+  // A picture drawn at one size and then stretched a little to fit comes out soft, and grain is the first thing to suffer.
+  // Otherwise (small windows, very large screens) draw it 1080 high as before and let the browser scale it.
+  // The size on screen is kept to whole points and the canvas to whole points times the screen's pixel ratio: browsers only map 1:1 then.
+  const dpr=window.devicePixelRatio||1,bw=finder.clientWidth,bh=finder.clientHeight;
+  if(bw<2||bh<2) return;
+  const a=FORMATS[S.format].aspect,A=aspect>=1?a:1/a;
+  if(!recording){                                   // the size never changes in the middle of a shot
+    let w=2*Math.floor(Math.min(bw,bh*A)/2),h=2*Math.round(w/A/2);
+    while(h>bh&&w>4){w-=2;h=2*Math.round(w/A/2);}
+    let W=Math.round(w*dpr),H=Math.round(h*dpr);
+    W-=W%2;H-=H%2;
+    const short=Math.min(W,H);
+    if(short<1000||short>1600){const long=Math.round(1080*a/2)*2;W=aspect>=1?long:1080;H=aspect>=1?1080:long;}
+    if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  }
+  const sc=Math.min(bw*dpr/cv.width,bh*dpr/cv.height),exact=sc>=1&&sc<1.02;
+  const cw=exact?cv.width/dpr:cv.width*sc/dpr,ch=exact?cv.height/dpr:cv.height*sc/dpr;
+  const x=exact?Math.floor((bw-cw)/2):(bw-cw)/2,y=exact?Math.floor((bh-ch)/2):(bh-ch)/2;
+  const css=cw+","+ch+","+x+","+y;
+  if(css!==cvCss){cvCss=css;cv.style.width=cw+"px";cv.style.height=ch+"px";cv.style.left=x+"px";cv.style.top=y+"px";}
 }
 function pictureGeom(F){
   // must match the rectangle maths in the film shader
@@ -988,7 +1041,7 @@ function pictureGeom(F){
   return {a:S.side<2?rw/rh:rh/rw,t,e};
 }
 const dyn={glitch:0,trackY:1.2,breath:0};
-let lastFrame=0,lastTick=0,zoomDir=0,frames=0,snapCb=null;
+let lastFrame=0,lastTick=0,zoomDir=0,frames=0,snapCb=null,frozen=false,freezeNext=false,dmgHook=null;   // frozen, dmgHook: testing only
 const R=Math.random;
 function tick(now){
   requestAnimationFrame(tick);
@@ -1000,7 +1053,7 @@ function tick(now){
   const iv=1000/S.fps;
   if(now-lastFrame<iv-1) return;
   lastFrame=(now-lastFrame>iv*2)?now:lastFrame+iv;   // keeps the true frame rate on a 60 Hz screen
-  if(!glOK) return;
+  if(!glOK||frozen) return;
   let src=null;
   if(mode==="test"){drawTest(now/1000);src=testCv;srcAspect=.75;}
   else if(mode==="still"&&stillEl){src=stillEl;srcAspect=stillEl.naturalWidth/stillEl.naturalHeight;}
@@ -1046,6 +1099,7 @@ function tick(now){
     // film movement, flare and damage that carry from frame to frame
     dyn.breath+=(R()-.5)*.006;dyn.breath*=.94;
     rollDamage(F.dmg);rollFilmFlare();
+    if(dmgHook) dmgHook(SCRP,SCRQ,DUSTP,DUSTQ);
     const wv=F.weave;
     bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);
     use(PR.film,{uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:st.wb,uFlash:FLR.mul,
@@ -1060,7 +1114,7 @@ function tick(now){
   }
   frames++;
   if(recording&&recTrack) recTrack.requestFrame();
-  if(snapCb){const f=snapCb;snapCb=null;f(cv.toDataURL("image/png"));}
+  if(snapCb){const f=snapCb;snapCb=null;if(freezeNext){frozen=true;freezeNext=false;}f(cv.toDataURL("image/png"));}
 }
 
 /* ---------- sources ---------- */
@@ -1115,9 +1169,14 @@ $("liveBtn").onclick=()=>startLive(false);
 /* ---------- recording ---------- */
 let rec=null,chunks=[],recStart=0,recTimer=0,actx=null,adest=null,recTrack=null;
 const clips=[];
+// Grain is the hardest thing there is to squeeze into a video file. HEVC (the format iPhones and the reference app use) keeps far more of it
+// than H.264 at the same size, so it is tried first on iPhone and iPad. If a clip made that way ever fails to open, the page goes back to H.264.
+let hevcBad=false;
+try{hevcBad=sessionStorage.getItem("reel8nohevc")==="1";}catch(e){}
 function pickMime(){
   const c=["video/mp4;codecs=avc1.640028,mp4a.40.2","video/mp4;codecs=avc1.4D4028,mp4a.40.2","video/mp4;codecs=avc1.42E028,mp4a.40.2",
     "video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm","video/mp4"];
+  if(IS_IOS&&!hevcBad) c.unshift("video/mp4;codecs=hvc1.1.6.L123.B0,mp4a.40.2");
   for(const m of c){try{if(MediaRecorder.isTypeSupported(m))return m;}catch(e){}}
   return "";
 }
@@ -1167,11 +1226,19 @@ async function beginRec(){
   tracks.push(vs.getVideoTracks()[0]);
   if(audio) tracks.push(audio);
   const mime=pickMime();
-  try{rec=new MediaRecorder(new MediaStream(tracks),mime?{mimeType:mime,videoBitsPerSecond:24e6}:{videoBitsPerSecond:24e6});}
+  const BITS=40e6;                                   // about 5 MB for every second of film: what it takes for grain to survive
+  try{rec=new MediaRecorder(new MediaStream(tracks),mime?{mimeType:mime,videoBitsPerSecond:BITS}:{videoBitsPerSecond:BITS});}
   catch(e){
-    try{rec=new MediaRecorder(new MediaStream([tracks[0]]));}
-    catch(e2){toast("This browser cannot record video.",3600);return;}
+    try{
+      if(/hvc1/.test(mime)){hevcBad=true;rec=new MediaRecorder(new MediaStream(tracks),{mimeType:pickMime(),videoBitsPerSecond:BITS});}
+      else rec=new MediaRecorder(new MediaStream([tracks[0]]));
+    }
+    catch(e2){
+      try{rec=new MediaRecorder(new MediaStream([tracks[0]]));}
+      catch(e3){toast("This browser cannot record video.",3600);return;}
+    }
   }
+  rec.onerror=()=>{if(/hvc1/.test(rec.mimeType||mime)) noHevc();};
   chunks=[];
   rec.ondataavailable=e=>{if(e.data&&e.data.size) chunks.push(e.data);};
   rec.onstop=finishRec;
@@ -1194,13 +1261,20 @@ function stopRec(){
   if(mode==="clip"){video.muted=true;video.loop=true;video.play().catch(()=>{});}
   paint();
 }
+function noHevc(){
+  if(hevcBad) return;
+  hevcBad=true;try{sessionStorage.setItem("reel8nohevc","1");}catch(e){}
+}
 function finishRec(){
   const type=(rec&&rec.mimeType)||"video/webm";
   const blob=new Blob(chunks,{type});chunks=[];
-  if(!blob.size){toast("Nothing was recorded. Try again.");return;}
+  if(!blob.size){
+    if(/hvc1/.test(type)){noHevc();toast("That shot did not record. Press record again: the page has switched to the older video format.",4200);return;}
+    toast("Nothing was recorded. Try again.");return;
+  }
   const d=new Date(),z=n=>String(n).padStart(2,"0");
   clips.unshift({
-    blob,url:URL.createObjectURL(blob),ext:type.indexOf("mp4")>=0?"mp4":"webm",
+    blob,url:URL.createObjectURL(blob),ext:type.indexOf("mp4")>=0?"mp4":"webm",hevc:/hvc1|hev1/.test(type),
     secs:Math.max(1,Math.round((performance.now()-recStart)/1000)),
     name:"reel8-"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"-"+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds()),
     label:FORMATS[S.format].name+" "+S.stock,fps:S.fps,aspect:cv.width/cv.height
@@ -1254,6 +1328,10 @@ function renderClips(){
   for(const c of clips){
     const el=document.createElement("div");el.className="clip";
     const v=document.createElement("video");v.src=c.url;v.controls=true;v.playsInline=true;v.preload="metadata";
+    if(c.hevc&&!c.checked){                          // a clip in the newer format that will not open: fall back for the next shots and say so
+      c.checked=true;
+      v.addEventListener("error",()=>{noHevc();toast("This clip did not record properly. The next ones will use the older video format.",4200);},{once:true});
+    }
     v.style.aspectRatio=String(c.aspect);
     const meta=document.createElement("div");meta.className="meta";meta.textContent=c.label+" · "+c.fps+" fps · "+c.secs+" s";
     const row=document.createElement("div");row.className="row";
@@ -1407,11 +1485,14 @@ $("formatRow").hidden=ACTIVE.length<2;
 buildStocks();paint();renderClips();
 glOK=initGL();
 if(!glOK) toast("This browser cannot draw the film look (WebGL is off).",6000);
+sizeCanvas(srcAspect);
+window.addEventListener("resize",()=>sizeCanvas(srcAspect));
 requestAnimationFrame(tick);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
 window.__reel8={S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,startFilmFlare,dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
-  still(el){stillEl=el;mode="still";$("srcCard").hidden=true;},snap(){return new Promise(r=>{snapCb=r;});}};
+  still(el){stillEl=el;mode="still";$("srcCard").hidden=true;},snap(){return new Promise(r=>{snapCb=r;});},
+  snapAndHold(){freezeNext=true;return new Promise(r=>{snapCb=r;});},release(){frozen=false;},set dmgHook(f){dmgHook=f;}};
 })();
 </script>
 </body>
