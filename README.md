@@ -6,13 +6,13 @@ Open it on a phone: https://pulkitkamal.github.io/reel/
 
 What it does now:
 
-- The screen puts the picture first. The top line shows the film, the speed and the zoom, and a red lamp with a clock while recording. On the picture, top left, is a live histogram: how the picture's brightness is spread, dark on the left, bright on the right. Its bright end turns amber when part of the picture is burnt out to white. Along the bottom of the picture is the exposure scale: slide a finger along it to go darker or brighter, tap it twice to go back to zero. The padlock keeps the camera's own exposure where it is.
-- Under the picture is a strip of live previews, one for each film, showing what the camera sees through that film. Tap one to load it, or swipe left or right on the picture.
-- Seven films: 50D, 100D, 200T, 250D, 500T, K64 (Kodachrome 64) and B&W.
-- Five keys: light (the phone's lamp), lens (steps through the rear lenses the browser offers), speed (9, 12, 18 or 24 frames a second), sound (on or off for the next shot) and more (Settings). Light and lens depend on the phone and its browser; where one is missing the key says so.
-- Film sound: the microphone is made to sound like the sound stripe on Super 8 film: thin (little bass, no top), with a slight sway in pitch and a faint hiss. A camera whirr, ticking once for each film frame, can be laid over it. Both are switches in Settings; the whirr is made in the page, not a recording.
-- Then Clips (shows the last shot), the record button, and W/T zoom. The screen works upright and sideways.
-- Two color choices in Settings. "Reel 8" is our own color. "spektrafilm" uses color tables made with spektrafilm (see Credits). 250D and K64 always use their tables. Black and white always uses our own.
+- A clean screen: black, with the picture from edge to edge. On it are only the film name and speed at the top, the picture shape (1:1, 4:3 or 16:9), Clips, the record button and "more".
+- Tap the film name to open the Films sheet: a row of live previews, one for each film. Tap one to load it. A sideways flick on the picture also changes film.
+- Sixteen films: 50D, 100D, 200T, 250D, 500T, K64 (Kodachrome 64), Velvia, Provia, Pro 400H, C200, Portra 160, Portra 400, Gold, Ektar, UltraMax and B&W.
+- On the picture: slide a finger up or down for exposure (the figure shows on the picture; tap it for zero), pinch with two fingers to zoom.
+- "More" holds light (the phone's lamp), lens (the rear lenses the browser offers), speed (9, 12, 18 or 24 frames a second), sound on or off, the exposure scale and lock, zoom keys, a live histogram, grid lines, and the settings. Light and lens depend on the phone and its browser; where one is missing the key says so.
+- The Super 8 look is strong: a soft picture, glow and bloom round lights, and blacks lifted to a milky dark grey.
+- Two color choices for the first five films: "Reel 8" is our own color, "spektrafilm" uses color tables made with spektrafilm (see Credits). The other color films always use their tables. Black and white always uses our own.
 - Exposure, color filter, zoom, and the film edge (overscan).
 - Lens flare when a lamp or the sun is in the shot, and a film flare at the start of a shot. Both can be switched off in Settings.
 - Film movement: film frames follow the camera's own pictures, so the rhythm is even, and each frame is a mix of camera pictures, so moving things smear slightly. This works best with a camera that runs at 54 or 60 pictures a second. If the camera's speed does not fit, it works the plain way. The last line in Settings says which. It can be switched off in Settings.
@@ -25,7 +25,7 @@ What it does now:
 
 Credits:
 
-- The "spektrafilm" color choice, and the 250D and K64 films, use color tables made with [spektrafilm](https://github.com/andreavolpato/spektrafilm) by Andrea Volpato, licensed [CC BY-SA 4.0](https://github.com/andreavolpato/spektrafilm/blob/main/SPEKTRAFILM_LICENSE.txt). The tables are in `lut/` with the licence and a note of what was changed (format only). They stay under CC BY-SA 4.0: anyone may copy and share them with the same credit.
+- The "spektrafilm" color choice, and the films from 250D onward, use color tables made with [spektrafilm](https://github.com/andreavolpato/spektrafilm) by Andrea Volpato, licensed [CC BY-SA 4.0](https://github.com/andreavolpato/spektrafilm/blob/main/SPEKTRAFILM_LICENSE.txt). The tables are in `lut/` with the licence and a note of what was changed (format only). They stay under CC BY-SA 4.0: anyone may copy and share them with the same credit.
 - The typeface is [Archivo](https://github.com/Omnibus-Type/Archivo) by Omnibus-Type, under the SIL Open Font License 1.1. A cut-down copy travels inside the page; `fonts/` holds it with the licence and a note of how it was cut down.
 
 Files:

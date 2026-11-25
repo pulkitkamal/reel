@@ -22,8 +22,17 @@ const TAPES={
 // Two films that exist only as spektrafilm colour tables (see luts.js). Their own-colour values are stand-ins for the moment before a table has loaded.
 FILM_STOCKS["250D"]=Object.assign({},FILM_STOCKS["50D"],{grain:.52,hal:4.8,bloom:.13,sf:true});
 FILM_STOCKS["K64"]=Object.assign({},FILM_STOCKS["100D"],{grain:.40,hal:2.6,bloom:.07,sf:true});
+// Photo films, also table-only. Grain goes with the film's speed; slide films (Velvia, Provia) glow less round lights, as slides do.
+for(const [name,like,grain,hal,bloom] of [["VELVIA","100D",.38,2.6,.07],["PROVIA","100D",.40,2.8,.08],["400H","50D",.58,4.6,.13],["C200","50D",.50,4.6,.13],
+  ["P160","50D",.44,4.4,.12],["P400","50D",.58,4.6,.13],["GOLD","50D",.50,4.8,.13],["EKTAR","50D",.40,4.2,.11],["ULTRA","50D",.60,4.8,.13]])
+  FILM_STOCKS[name]=Object.assign({},FILM_STOCKS[like],{grain,hal,bloom,sf:true});
+// The Super 8 look, as chosen from three strengths shown side by side (the strongest): a soft picture (the small size and blur below),
+// twice the glow round lights, three and a half times the bloom, and blacks lifted off the floor to a milky dark grey.
+const LOOK={hal:2,bloom:3.5,lift:.05};
+// Picture shapes. The long side follows the way the phone is held: 4:3 is upright 3:4 on an upright phone.
+const SHAPES={"1:1":1,"4:3":4/3,"16:9":16/9};
 const FORMATS={
-  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","B&W"],pShort:520,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.36,halo:1.1,dsz:1.0,dmg:1.0},
+  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","PROVIA","400H","C200","P160","P400","GOLD","EKTAR","ULTRA","B&W"],pShort:380,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.75,halo:2.1,dsz:1.0,dmg:1.0},
   s16:{name:"SUPER 16",aspect:5/3,fps:[24,25],stocks:Object.keys(FILM_STOCKS),pShort:880,gs:.9,grainMul:.6,weave:.32,vig:.24,vexp:1.25,ca:.0014,corner:.012,strip:.13,edge:.030,soft:.55,halo:1.0,dsz:.65,dmg:.6},
   vhs:{name:"VHS",     aspect:4/3,fps:[25,30],stocks:Object.keys(TAPES),      pShort:480}
 };
@@ -38,7 +47,7 @@ const ACTIVE=["s8"];
 
 /* ---------- state ---------- */
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true,sound:true,light:false,filmSound:true,whirr:false};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
@@ -61,12 +70,15 @@ try{
   if(saved.colour==="spektrafilm") S.colour=1;
   if(saved.grainTry===0||saved.grainTry===1) S.grain=saved.grainTry;
   if(saved.sound===false) S.sound=false;
+  if(SHAPES[saved.shape]) S.shape=saved.shape;
+  if(saved.histo===true) S.histo=true;
+  if(saved.grid===true) S.grid=true;
   if(saved.filmSound===false) S.filmSound=false;
   if(saved.whirr===true) S.whirr=true;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -220,7 +232,7 @@ const FS_FILM=COMMON+`uniform sampler2D uP,uGlow,uNoise,uDustTex,uFlare;
 uniform vec4 uDp[4],uDq[4],uSc[6],uSd[6],uLk,uLk2;
 uniform vec3 uLkWb;
 uniform vec2 uOut,uWeave,uOff1,uOff2;
-uniform vec3 uWb,uBlack,uWhite,uGam,uKc;uniform sampler2D uLut,uGrainTex;uniform float uLutOn,uGm,uGk,uGrho,uGskew;uniform vec4 uGrot;uniform vec2 uJit;
+uniform vec3 uWb,uBlack,uWhite,uGam,uKc;uniform sampler2D uLut,uGrainTex;uniform float uLutOn,uLift,uGm,uGk,uGrho,uGskew;uniform vec4 uGrot;uniform vec2 uJit;
 uniform float uSeed,uEv,uSat,uK,uGrain,uGs,uHal,uBloom,uBw,uFlicker,uOver,uSide,uFmt,uVig,uCa,uCorner,uT,uE,uFl,uFlash,uDsz,uGain,uOff,uSh,uHd,uVexp;
 // second colour choice: look the colour up in a table (33 steps a side, laid out as 33 tiles in a row, one for each step of blue)
 vec3 lut3(vec3 c){
@@ -323,7 +335,8 @@ void main(){
   float le=dot(g,vec3(.299,.587,.114));
   g=mix(g,vec3(le),smoothstep(.72,1.05,le)*uHd);
   g=uBlack+g*(uWhite-uBlack);
-  if(uLutOn>.5){g=lut3(pow(clamp(cl,0.,1.),vec3(1./2.2)));le=dot(g,vec3(.299,.587,.114));}   // the table takes the picture as the camera gave it and returns the film's colour
+  if(uLutOn>.5){g=lut3(pow(clamp(cl,0.,1.),vec3(1./2.2)));le=dot(g,vec3(.299,.587,.114));}
+  g=uLift+g*(1.-uLift);le=uLift+le*(1.-uLift);          // lifted blacks: film shown on a screen never reaches true black   // the table takes the picture as the camera gave it and returns the film's colour
   if(uBw>.5)g=vec3(dot(g,vec3(.299,.587,.114)))*vec3(1.,.99,.955);
   // Grain, measured against a reference clip: one clumpy pattern shared by all three colours, a slow unevenness about seven grains wide,
   // and only soft colour clouds on top (film's three colour layers each have their own grain, but from a normal distance it reads as a gentle tint, not as coloured dots)
@@ -807,10 +820,8 @@ function sizeCanvas(aspect){
   // The size on screen is kept to whole points and the canvas to whole points times the screen's pixel ratio: browsers only map 1:1 then.
   const dpr=window.devicePixelRatio||1,bw=finder.clientWidth,bh0=finder.clientHeight;
   if(bw<2||bh0<2) return;
-  const a=FORMATS[S.format].aspect,A=aspect>=1?a:1/a;
-  // The top line (film, speed, zoom) sits above the picture when the picture is as wide as the screen and there is height to spare;
-  // otherwise it sits on the picture's top edge, so the picture stays as large as it can be.
-  const BAR=40,roomy=bh0-BAR>=Math.floor(bw/A),top=roomy?BAR:0,bh=bh0-top;
+  const a=S.format==="s8"?SHAPES[S.shape]:FORMATS[S.format].aspect,A=aspect>=1?a:1/a;
+  const top=0,roomy=true,bh=bh0;                    // the top line and the shape choice float over the viewfinder; the picture gets all of it
   if(!recording){                                   // the size never changes in the middle of a shot
     let w=2*Math.floor(Math.min(bw,bh*A)/2),h=2*Math.round(w/A/2);
     while(h>bh&&w>4){w-=2;h=2*Math.round(w/A/2);}
@@ -827,7 +838,6 @@ function sizeCanvas(aspect){
   if(css!==cvCss){
     cvCss=css;
     for(const el of [cv,picBox]){el.style.width=cw+"px";el.style.height=ch+"px";el.style.left=x+"px";el.style.top=y+"px";}
-    $("cam").classList.toggle("tight",!roomy);
   }
 }
 function pictureGeom(F){
@@ -934,7 +944,7 @@ function develop(now){
       uWeave:[((R()-.5)*.0012+Math.sin(now/1100)*.0006)*wv,((R()-.5)*.0014+Math.sin(now/700)*.0008)*wv],
       uOff1:off1,uOff2:off2,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uBlack:st.black,uWhite:st.white,
       uSeed:seed,uEv:S.ev,uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uVexp:F.vexp,uGrain:st.grain*F.grainMul,uGs:GM.gs*gpx,
-      uHal:st.hal,uBloom:st.bloom,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1),
+      uHal:st.hal*LOOK.hal,uBloom:st.bloom*LOOK.bloom,uLift:st.bw?LOOK.lift*.6:LOOK.lift,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1),
       uOver:S.overscan?1:0,uSide:S.overscan?S.side:0,uFmt:S.format==="s16"?1:0,uVig:F.vig,uCa:F.ca,uCorner:F.corner,
       uT:geo.t,uE:geo.e};
     // The small previews are drawn first. Reading them back makes the page wait for the graphics chip, and at this point it has only small jobs queued.
@@ -950,14 +960,15 @@ function develop(now){
 // About five times a second the picture is drawn once more, small and without grain or marks, through each film in the strip.
 // The results are read back and painted into the strip. The one for the film in the camera also feeds the histogram.
 // While recording only that one is drawn: the film cannot be changed then, and the phone has better things to do.
+const NO_PREVIEWS=/[?&]previews=0(&|$)/.test(location.search);   // test only: no live previews and no histogram, to see what they cost a phone
 const TH={gap:170,cost:0,last:0,tw:0,th:0,px:null,img:null,zero4:new Float32Array(4),zeroD:new Float32Array(16),zeroS:new Float32Array(24),bins:new Uint32Array(64),drawn:0};
 function stockLook(name,f){                          // the settings that belong to one film
   const st=FILM_STOCKS[name],lt=lutFor(name);
   return {lt,u:{uLutOn:lt?1:0,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uLkWb:lt?f:st.wb,uBlack:st.black,uWhite:st.white,
-    uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uHal:st.hal,uBloom:st.bloom,uBw:st.bw}};
+    uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uHal:st.hal*LOOK.hal,uBloom:st.bloom*LOOK.bloom,uLift:st.bw?LOOK.lift*.6:LOOK.lift,uBw:st.bw}};
 }
 function sizeStrip(){
-  const port=srcAspect<1,w=port?(innerHeight<700?42:52):60,h=port?Math.round(w*4/3):45;
+  const a=SHAPES[S.shape],port=srcAspect<1,w=port?84:Math.round(75*a),h=port?Math.round(84*a):75;
   let changed=false;
   for(const b of $("strip").children){const c=b.firstElementChild;if(c.style.width!==w+"px"||c.style.height!==h+"px"){c.style.width=w+"px";c.style.height=h+"px";changed=true;}}
   if(changed) showFilmInStrip(false);                // new sizes: the old place in the strip no longer fits
@@ -978,10 +989,11 @@ function drawHistogram(d,burnt){
 }
 function liveThumbs(U,PB,pw,ph,f){
   const strip=$("strip"),list=FORMATS[S.format].stocks;
-  if(strip.children.length!==list.length||frozen) return false;
-  const t=performance.now();if(t-TH.last<TH.gap) return false;
+  const open=!$("filmSheet").hidden;               // all films are drawn only while the Films sheet is open; one, for the histogram, only if that is switched on
+  if(NO_PREVIEWS||(!open&&!S.histo&&!recording)||strip.children.length!==list.length||frozen) return false;
+  const t=performance.now();if(t-TH.last<(open||S.histo?TH.gap:2000)) return false;   // while recording with nothing else showing: one small picture every two seconds, for the face of the Clips button
   TH.last=t;
-  const port=srcAspect<1,tw=port?104:120,th=port?138:90;
+  const sa=SHAPES[S.shape],port=srcAspect<1,tw=port?104:Math.floor(90*sa),th=port?Math.floor(104*sa):90;
   if(tw!==TH.tw||th!==TH.th){
     TH.tw=tw;TH.th=th;TH.px=new Uint8Array(tw*th*4*(list.length+1));TH.img=new ImageData(tw,th);
     for(const b of strip.children){const c=b.firstElementChild;c.width=tw;c.height=th;}
@@ -992,7 +1004,7 @@ function liveThumbs(U,PB,pw,ph,f){
   bind(0,PB.tex);use(PR.blur,{uTex:{tex:0},uDir:[1.25/pw,0],uThr:0});draw(TA);     // a small, smoothed copy of the picture to draw the previews from
   bind(0,TA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,1.25/ph],uThr:0});draw(TS);
   // side by side in one small sheet: the films (all of them, or only the one in use while recording), then the picture as the camera gave it
-  const i0=recording?list.indexOf(S.stock):0,n=recording?1:list.length;
+  const one=recording||!open,i0=one?list.indexOf(S.stock):0,n=one?1:list.length;
   gl.bindFramebuffer(gl.FRAMEBUFFER,AT.fb);
   for(let k=0;k<n;k++){
     const L=stockLook(list[i0+k],f);
@@ -1014,7 +1026,7 @@ function liveThumbs(U,PB,pw,ph,f){
   for(let k=0;k<n;k++){
     for(let y=0;y<th;y++){const src=((th-1-y)*wide+k*tw)*4;d.set(px.subarray(src,src+row),y*row);}   // turned over: the graphics chip counts rows from the bottom
     const c=strip.children[i0+k].firstElementChild;(c._x||(c._x=c.getContext("2d"))).putImageData(TH.img,0,0);
-    if(list[i0+k]===S.stock) drawHistogram(d,burnt);
+    if(list[i0+k]===S.stock&&S.histo) drawHistogram(d,burnt);
   }
   TH.drawn++;
   // If drawing and reading the previews takes this phone long, they are refreshed less often, so the picture itself stays smooth.
@@ -1509,7 +1521,7 @@ function buildStocks(){
     const c=document.createElement("canvas");c.width=TH.tw||104;c.height=TH.th||138;
     const t=document.createElement("span");t.className="code";t.textContent=name;
     b.append(c,t);
-    b.onclick=()=>{if(recording){toast("Stop recording to change film.");return;}S.stockBy[S.format]=name;remember();paint();};
+    b.onclick=()=>{if(recording){toast("Stop recording to change film.");return;}S.stockBy[S.format]=name;remember();paint();filmSheet(false);};
     row.append(b);
   }
   TH.tw=0;sizeStrip();stripShown="";
@@ -1537,7 +1549,12 @@ function paint(){
   $("lockBtn").innerHTML=S.lock?LOCK_SHUT:LOCK_OPEN;
   $("lockBtn").setAttribute("aria-pressed",S.lock);
   $("lockBtn").setAttribute("aria-label",S.lock?"Unlock exposure":"Lock exposure");
-  $("cam").classList.toggle("rolling",recording);     // (not "rec": that name is the lamp's own style)
+  $("cam").classList.toggle("rolling",recording);
+  for(const b of $("shapeSeg").children) b.setAttribute("aria-pressed",b.dataset.v===S.shape);
+  $("shapeSeg").hidden=isVhs;
+  $("histBox").hidden=!S.histo;$("histSwitch").setAttribute("aria-checked",S.histo);
+  $("pic").classList.toggle("grid",S.grid);$("gridSwitch").setAttribute("aria-checked",S.grid);
+  $("evRead").hidden=S.ev===0;$("evRead").textContent=(S.ev>0?"+":"−")+Math.abs(S.ev).toFixed(1);     // (not "rec": that name is the lamp's own style)
   $("trigger").setAttribute("aria-pressed",recording);
   $("trigger").setAttribute("aria-label",recording?"Stop recording":"Start recording");
   for(const b of $("strip").children) b.setAttribute("aria-pressed",b.dataset.v===S.stock);
@@ -1566,7 +1583,21 @@ function paint(){
   $("filterRange").value=S.filter;$("filterOut").textContent=FILTERS[S.filter][0];
   $("speedRange").value=S.zoomSpeed;$("speedOut").textContent=S.zoomSpeed.toFixed(1)+"×";
 }
-$("stockBtn").onclick=()=>showFilmInStrip(true);
+function filmSheet(on){
+  if(on&&recording){toast("Stop recording to change film.");return;}
+  $("filmSheet").hidden=!on;
+  if(on){TH.last=0;showFilmInStrip(false);$("filmClose").focus();}else $("stockBtn").focus();
+}
+$("stockBtn").onclick=()=>filmSheet(true);
+$("filmClose").onclick=()=>filmSheet(false);
+$("shapeSeg").onclick=e=>{
+  const v=e.target.dataset&&e.target.dataset.v;if(!v||v===S.shape) return;
+  if(recording){toast("Stop recording to change the shape.");return;}
+  S.shape=v;TH.tw=0;remember();paint();sizeStrip();sizeCanvas(srcAspect);
+};
+$("histSwitch").onclick=()=>{S.histo=!S.histo;TH.last=0;remember();paint();};
+$("gridSwitch").onclick=()=>{S.grid=!S.grid;remember();paint();};
+$("evRead").onclick=()=>{S.ev=0;paint();};
 // Exposure scale. Slide a finger along it and the needle moves by the same distance, wherever the finger started,
 // so a stray touch never makes the exposure jump. Two quick taps put it back to zero.
 {
@@ -1662,20 +1693,41 @@ function stepStock(dir){
   S.stockBy[S.format]=list[(list.indexOf(S.stock)+dir+n)%n];
   remember();paint();showFilmTag(dir);
 }
+// On the picture: a sideways flick changes film; sliding up or down sets exposure (up is brighter); two fingers pinch to zoom.
 {
-  const fd=$("finder");let sw=null;
+  const fd=$("finder");let sw=null,two=null;const pts=new Map();
+  const gap=()=>{const [a,b]=[...pts.values()];return Math.hypot(a.x-b.x,a.y-b.y)||1;};
   fd.addEventListener("pointerdown",e=>{
-    if(!e.isPrimary||e.button>0||(e.target.closest&&e.target.closest(".card,.chip,.scale,.bar,.hist"))){sw=null;return;}   // a second finger cancels; so does a touch on a control
-    sw={id:e.pointerId,x:e.clientX,y:e.clientY,t:e.timeStamp};
+    if(e.button>0||(e.target.closest&&e.target.closest(".card,.chip,.bar,.shape,#evRead"))) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     try{fd.setPointerCapture(e.pointerId);}catch(x){}
+    if(pts.size===2){sw=null;two={d:gap(),z:S.zoom};$("zoomRead").classList.remove("off");return;}   // a second finger: this is a pinch, not a swipe
+    if(pts.size>2||!e.isPrimary){sw=null;return;}
+    sw={id:e.pointerId,x:e.clientX,y:e.clientY,t:e.timeStamp,ev:S.ev,mode:"",h:Math.max(120,cv.getBoundingClientRect().height)};
   });
-  fd.addEventListener("pointerup",e=>{
+  fd.addEventListener("pointermove",e=>{
+    const p=pts.get(e.pointerId);if(!p) return;
+    p.x=e.clientX;p.y=e.clientY;
+    if(two&&pts.size===2){S.zoom=Math.min(4,Math.max(1,two.z*gap()/two.d));$("zoomRead").textContent=S.zoom.toFixed(1)+"×";return;}
     if(!sw||e.pointerId!==sw.id) return;
-    const dx=e.clientX-sw.x,dy=e.clientY-sw.y,dt=e.timeStamp-sw.t;sw=null;   // the finger's own timing, so a busy phone cannot spoil a swipe
+    const dx=e.clientX-sw.x,dy=e.clientY-sw.y;
+    if(!sw.mode&&Math.abs(dy)>14&&Math.abs(dy)>Math.abs(dx)*1.5) sw.mode="ev";      // clearly up or down: exposure
+    if(sw.mode==="ev"){
+      const v=Math.max(-3,Math.min(3,Math.round((sw.ev-(dy-Math.sign(dy)*14)/sw.h*4)*10)/10))||0;   // the whole height of the picture is four stops
+      if(v!==S.ev){S.ev=v;paint();}
+    }
+  });
+  const end=e=>{
+    if(!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if(two){if(pts.size<2){two=null;sw=null;setTimeout(()=>{if(!zoomDir&&!two)$("zoomRead").classList.add("off");},900);}return;}
+    if(!sw||e.pointerId!==sw.id) return;
+    const dx=e.clientX-sw.x,dy=e.clientY-sw.y,dt=e.timeStamp-sw.t,mode=sw.mode;sw=null;   // the finger's own timing, so a busy phone cannot spoil a swipe
+    if(e.type!=="pointerup"||mode==="ev") return;
     if(Math.abs(dx)<40||Math.abs(dx)<Math.abs(dy)*1.5||dt>1000) return;     // a clear sideways flick only
     stepStock(dx<0?1:-1);                                                   // finger moves left: next film
-  });
-  fd.addEventListener("pointercancel",()=>{sw=null;});
+  };
+  fd.addEventListener("pointerup",end);fd.addEventListener("pointercancel",end);
 }
 
 $("settingsBtn").onclick=()=>{paintStatus();$("settings").hidden=false;$("settingsClose").focus();};
@@ -1716,6 +1768,7 @@ document.addEventListener("keydown",e=>{
   if(e.key!=="Escape") return;
   if(!$("settings").hidden) $("settingsClose").click();
   else if(!$("gallery").hidden) $("galleryClose").click();
+  else if(!$("filmSheet").hidden) filmSheet(false);
 });
 
 /* ---------- start ---------- */
@@ -1734,7 +1787,7 @@ if(!FRAMED&&"serviceWorker" in navigator&&(location.protocol==="https:"||locatio
 $("homeNote").hidden=!(IS_IOS&&!STANDALONE&&!FRAMED);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
+window.__reel8={LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
   get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
   blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";card(false);},snap(){return new Promise(r=>{snapCb=r;});},

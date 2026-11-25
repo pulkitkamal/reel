@@ -60,7 +60,7 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 #cam.tight #pic::before{content:"";position:absolute;left:0;right:0;top:0;height:72px;border-radius:12px 12px 0 0;pointer-events:none;
   background:linear-gradient(to bottom,rgba(0,0,0,.5),rgba(0,0,0,0))}
 /* while recording: a thin red frame round the picture; and where the top line is on the picture, the clock takes the place of the speed (which cannot change then) */
-#cam.rolling #pic::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;border-radius:12px;box-shadow:inset 0 0 0 2px var(--rec);pointer-events:none}
+#cam.rolling #pic::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;box-shadow:inset 0 0 0 2px var(--rec);pointer-events:none}
 #cam.tight.rolling #fpsWrap{display:none}
 #stockBtn{font-size:26px;line-height:26px;color:var(--lamp)}
 .bar .right{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
@@ -182,22 +182,65 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
 .note{margin:0;font-size:13px;line-height:1.5;color:#b9b8b3}
 .note a{color:var(--lamp)}
 .srcvid{position:absolute;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none}
-.bare #pic{display:none}.bare #view{border-radius:0}              /* for tests that compare the picture pixel by pixel */
+#cam.bare #pic,#cam.bare .bar,#cam.bare .shape{display:none}              /* for tests that compare the picture pixel by pixel */
 @supports (height:100dvh){html,body{height:100dvh}}
 @media (prefers-reduced-motion:reduce){.rec i,.filmtag{animation:none !important}*{transition:none !important}}
-@media (max-height:640px){.deck{padding:4px 20px 8px}.trigger{width:68px;height:68px}.trigger b{width:54px;height:54px}.key{height:42px}}
-/* held sideways: films down the left, picture in the middle, controls on the right */
+@media (max-height:640px){#cam .deck{padding:6px 28px 10px}.trigger{width:68px;height:68px}.trigger b{width:54px;height:54px}.key{height:42px}}
 @media (orientation:landscape) and (max-height:540px){
-  #cam{max-width:none;grid-template-columns:auto minmax(0,1fr) 172px;grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"strip finder deck" "strip finder keys"}
-  .strip{flex-direction:column;overflow-x:hidden;overflow-y:auto;padding:6px 6px 6px 8px}
-  .keys{display:grid;grid-template-columns:repeat(3,1fr);padding:0 6px 8px}
-  .key{border-left:0;height:42px}
-  .deck{grid-template-columns:none;justify-items:center;align-content:center;gap:10px;padding:8px}
-  .deck .rocker{order:1;justify-self:center}.deck .trigger{order:2}.deck .clipsbtn{order:3;justify-self:center;flex-direction:row;gap:6px;width:92px;height:40px}
-  .deck .clipsbtn.has{width:58px;height:44px}
   .trigger{width:68px;height:68px}.trigger b{width:54px;height:54px}
   .sheet{left:12%;right:12%}
   .sheet.full{left:0;right:0}
+}
+
+/* ================= the clean screen =================
+   Black, the picture from edge to edge, and only what is needed to shoot: film and speed at the top, picture shape, clips, record, more.
+   Everything else lives in the More sheet. Film previews live in the Films sheet and run only while it is open. */
+#cam{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"finder" "deck";max-width:560px}
+#view{border-radius:0}
+#pic{pointer-events:none}
+.mk{position:absolute;width:16px;height:16px;border:1.5px solid rgba(244,241,232,.85);pointer-events:none}
+.mk.a{left:9px;top:9px;border-right:0;border-bottom:0}.mk.b{right:9px;top:9px;border-left:0;border-bottom:0}
+.mk.c{left:9px;bottom:9px;border-right:0;border-top:0}.mk.d{right:9px;bottom:9px;border-left:0;border-top:0}
+#pic.grid{background:
+  linear-gradient(rgba(244,241,232,.38),rgba(244,241,232,.38)) 33.333% 0/1px 100% no-repeat,linear-gradient(rgba(244,241,232,.38),rgba(244,241,232,.38)) 66.666% 0/1px 100% no-repeat,
+  linear-gradient(rgba(244,241,232,.38),rgba(244,241,232,.38)) 0 33.333%/100% 1px no-repeat,linear-gradient(rgba(244,241,232,.38),rgba(244,241,232,.38)) 0 66.666%/100% 1px no-repeat}
+.finder .bar{position:absolute;left:0;right:0;top:0;bottom:auto;height:48px;padding:0 16px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;pointer-events:none;
+  text-shadow:0 1px 4px rgba(0,0,0,.75),0 0 2px rgba(0,0,0,.5);background:linear-gradient(to bottom,rgba(0,0,0,.5),rgba(0,0,0,0))}   /* the shade keeps it readable when the picture reaches up under it */
+.finder .bar>*{pointer-events:auto}
+.bar .mid{grid-column:2;display:flex;align-items:baseline;gap:8px}
+.bar .rec{grid-column:1;justify-self:start}
+#stockBtn{font-size:24px;line-height:44px;min-width:44px;color:var(--lamp)}
+#fpsRead{font-size:15px;opacity:.88}
+#zoomRead{grid-column:3;justify-self:end;font-size:15px;transition:opacity .25s}
+#zoomRead.off{opacity:0}
+#cam .hist{left:12px;top:auto;bottom:12px;pointer-events:none}
+#evRead{position:absolute;right:12px;top:54px;min-width:48px;height:30px;padding:0 10px;border-radius:15px;background:rgba(0,0,0,.42);color:var(--lamp);font-size:14px;pointer-events:auto}
+.shape{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:2px;padding:3px;border-radius:21px;background:rgba(0,0,0,.42)}
+.shape button{min-width:50px;height:36px;padding:0 10px;border-radius:18px;font-size:14px;font-weight:560;font-stretch:88%;color:rgba(244,241,232,.82)}
+.shape button[aria-pressed="true"]{background:rgba(244,241,232,.16);color:var(--lamp)}
+#cam.rolling .shape{opacity:.35}
+#cam.carded .shape{visibility:hidden}
+.deck{padding:12px 28px 16px}
+.clipsbtn{width:50px;height:50px;border-radius:50%}
+.morebtn{justify-self:end;width:50px;height:50px;border-radius:50%;background:#17181a;display:flex;align-items:center;justify-content:center;gap:4px}
+.morebtn i{width:4.5px;height:4.5px;border-radius:50%;background:var(--paper)}
+/* sheets */
+.sheet .keys{display:flex;padding:0 0 6px;margin:0 -6px 6px;border-bottom:1px solid var(--edge)}
+.sheet .scale{position:relative;left:auto;right:auto;bottom:auto;height:66px;padding:0;background:none;display:flex;align-items:flex-end;margin:0 0 6px}
+#cam.carded .sheet .scale{visibility:visible}
+.sheet .rocker{justify-self:auto}
+#filmSheet{padding-right:0}
+#filmSheet .head{padding-right:18px}
+#filmSheet .strip{display:flex;flex-direction:row;gap:10px;padding:2px 18px 4px 0;overflow-x:auto;overflow-y:hidden}
+#filmSheet .film canvas{border-radius:6px}
+#filmSheet .film span{font-size:14px}
+@media (orientation:landscape) and (max-height:540px){
+  #cam{max-width:none;grid-template-columns:minmax(0,1fr) 108px;grid-template-rows:minmax(0,1fr);grid-template-areas:"finder deck"}
+  .deck{grid-template-columns:none;grid-template-rows:1fr auto 1fr;justify-items:center;align-items:center;padding:14px 10px;gap:0}
+  .deck .clipsbtn,.deck .clipsbtn.has{order:3;align-self:start;margin-top:22px;width:50px;height:50px;flex-direction:column;gap:0}
+  .deck .trigger{order:2}.deck .morebtn{order:1;align-self:end;margin-bottom:22px;justify-self:center}
+  .shape{bottom:6px}
+  #filmSheet .strip{flex-direction:row}
 }
 </style>
 </head>
@@ -207,18 +250,16 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
   <main class="finder" id="finder">
     <canvas id="view" width="1080" height="1440"></canvas>
     <div id="pic">
-      <header class="bar" id="bar">
-        <button class="code" id="stockBtn" aria-label="Film in the camera">200T</button>
-        <div class="rec" id="recLamp" hidden><i></i><span class="num" id="recTime">00:00</span></div>
-        <div class="right"><span id="fpsWrap"><b class="num" id="fpsRead">18</b> <span class="lab">frames a second</span></span><span class="num" id="zoomRead">1.0&times;</span></div>
-      </header>
-      <div class="hist" id="histBox" title="Brightness spread, dark on the left, bright on the right"><canvas id="histo" width="216" height="90" role="img" aria-label="Brightness of the picture: dark on the left, bright on the right"></canvas></div>
-      <button class="chip" id="srcChip" hidden>Change clip</button>
-      <div class="scale" id="evScale">
-        <button id="lockBtn" aria-pressed="false" aria-label="Lock exposure"></button>
-        <div class="ticks" id="evTicks" role="slider" tabindex="0" aria-label="Exposure" aria-valuemin="-3" aria-valuemax="3" aria-valuenow="0"><b class="needle" id="evNeedle"></b><em class="num" id="evVal">0.0</em></div>
-      </div>
+      <i class="mk a"></i><i class="mk b"></i><i class="mk c"></i><i class="mk d"></i>
+      <div class="hist" id="histBox" hidden title="Brightness spread, dark on the left, bright on the right"><canvas id="histo" width="216" height="90" role="img" aria-label="Brightness of the picture: dark on the left, bright on the right"></canvas></div>
+      <button class="num" id="evRead" hidden aria-label="Exposure. Press to set it back to zero"></button>
     </div>
+    <header class="bar" id="bar">
+      <div class="rec" id="recLamp" hidden><i></i><span class="num" id="recTime">00:00</span></div>
+      <div class="mid"><button class="code" id="stockBtn" aria-label="Film in the camera">200T</button><span id="fpsWrap"><b class="num" id="fpsRead">18</b></span></div>
+      <span class="num off" id="zoomRead">1.0&times;</span>
+    </header>
+    <button class="chip" id="srcChip" hidden>Change clip</button>
     <div class="card" id="srcCard" hidden>
       <button class="x" id="cardClose" aria-label="Close" hidden>&times;</button>
       <p id="cardText"></p>
@@ -230,29 +271,43 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
     </div>
     <div class="filmtag off" id="filmTag" role="status"><b id="filmTagName">200T</b><span id="filmTagDots" aria-hidden="true"></span></div>
     <div class="toast off" id="toast" role="status"></div>
+    <div class="shape" id="shapeSeg" role="group" aria-label="Picture shape"><button data-v="1:1">1:1</button><button data-v="4:3">4:3</button><button data-v="16:9">16:9</button></div>
   </main>
-
-  <div class="strip" id="strip" role="group" aria-label="Film"></div>
-
-  <div class="keys">
-    <button class="key" id="lightKey" aria-pressed="false"><b class="num">off</b><span class="lab">light</span></button>
-    <button class="key" id="lensKey"><b class="num">1&times;</b><span class="lab">lens</span></button>
-    <button class="key" id="fpsBtn" aria-label="Frames a second"><b class="num">18</b><span class="lab">speed</span></button>
-    <button class="key" id="soundKey" aria-pressed="true"><b class="num">on</b><span class="lab">sound</span></button>
-    <button class="key" id="settingsBtn" aria-label="More settings"><b class="num">&middot;&middot;&middot;</b><span class="lab">more</span></button>
-  </div>
 
   <footer class="deck">
     <button class="clipsbtn" id="galleryBtn" aria-label="Open clips"><b class="num" id="clipCount">0</b><span class="lab">clips</span></button>
     <button class="trigger" id="trigger" aria-pressed="false" aria-label="Start recording"><b></b></button>
-    <div class="rocker" role="group" aria-label="Zoom">
-      <button id="zoomW" aria-label="Zoom out">W</button>
-      <button id="zoomT" aria-label="Zoom in">T</button>
-    </div>
+    <button class="morebtn" id="settingsBtn" aria-label="More: light, lens, speed, sound, exposure and settings"><i></i><i></i><i></i></button>
   </footer>
 
+  <section class="sheet" id="filmSheet" hidden aria-label="Films">
+    <div class="head"><h2>Films</h2><button id="filmClose" aria-label="Close films">&times;</button></div>
+    <p class="note" style="margin:0 0 10px">Each one is live. Tap a film to load it.</p>
+    <div class="strip" id="strip" role="group" aria-label="Film"></div>
+  </section>
+
   <section class="sheet" id="settings" hidden aria-label="Settings">
-    <div class="head"><h2>Settings</h2><button id="settingsClose" aria-label="Close settings">&times;</button></div>
+    <div class="head"><h2>More</h2><button id="settingsClose" aria-label="Close">&times;</button></div>
+    <div class="keys">
+      <button class="key" id="lightKey" aria-pressed="false"><b class="num">off</b><span class="lab">light</span></button>
+      <button class="key" id="lensKey"><b class="num">1&times;</b><span class="lab">lens</span></button>
+      <button class="key" id="fpsBtn" aria-label="Frames a second"><b class="num">18</b><span class="lab">speed</span></button>
+      <button class="key" id="soundKey" aria-pressed="true"><b class="num">on</b><span class="lab">sound</span></button>
+    </div>
+    <div class="field"><span>Exposure</span><span class="lab">or slide up and down on the picture</span></div>
+    <div class="scale" id="evScale">
+      <button id="lockBtn" aria-pressed="false" aria-label="Lock exposure"></button>
+      <div class="ticks" id="evTicks" role="slider" tabindex="0" aria-label="Exposure" aria-valuemin="-3" aria-valuemax="3" aria-valuenow="0"><b class="needle" id="evNeedle"></b><em class="num" id="evVal">0.0</em></div>
+    </div>
+    <div class="field"><span>Zoom</span>
+      <div class="rocker" role="group" aria-label="Zoom"><button id="zoomW" aria-label="Zoom out">W</button><button id="zoomT" aria-label="Zoom in">T</button></div>
+    </div>
+    <div class="field"><span id="histLabel">Histogram on the picture</span>
+      <button class="switch" id="histSwitch" role="switch" aria-checked="false" aria-labelledby="histLabel"></button>
+    </div>
+    <div class="field"><span id="gridLabel">Grid lines</span>
+      <button class="switch" id="gridSwitch" role="switch" aria-checked="false" aria-labelledby="gridLabel"></button>
+    </div>
     <div class="field"><span>Camera</span>
       <div class="seg" id="facingSeg"><button data-v="environment">Rear</button><button data-v="user">Front</button></div>
     </div>
