@@ -46,7 +46,7 @@ const ACTIVE=["s8"];
 
 /* ---------- state ---------- */
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video"};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
@@ -72,12 +72,13 @@ try{
   if(SHAPES[saved.shape]) S.shape=saved.shape;
   if(saved.histo===true) S.histo=true;
   if(saved.grid===true) S.grid=true;
+  if(saved.shoot==="photo") S.shoot="photo";
   if(saved.filmSound===false) S.filmSound=false;
   if(saved.whirr===true) S.whirr=true;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -952,6 +953,7 @@ function develop(now){
     use(PR.film,U);draw(null);
   }
   frames++;MV.lastRender=now;
+  if(frames===3) $("cam").classList.add("ready");   // the first pictures are in: let the viewfinder fade up
   if(MV.log) MV.log.push([now,MV.locked?MV.parts:1,MV.locked?1:0]);
   if(recording&&recTrack) recTrack.requestFrame();
   if(snapCb){const f=snapCb;snapCb=null;if(freezeNext){frozen=true;freezeNext=false;}f(cv.toDataURL("image/png"));}
@@ -1060,6 +1062,7 @@ function step(now){
   beginFrame(srcAspect);
   if(!expose(src,1)) return;
   develop(now);
+  if(snapWanted){snapWanted=false;takePhoto();}      // straight after the frame is drawn, while the canvas still holds it
 }
 
 /* ---------- movement: film frames in step with the camera, and a slight smear ---------- */
@@ -1447,7 +1450,34 @@ function finishRec(){
   renderClips();
   toast("Clip ready. Open Clips to watch or save it.",3200);
 }
-$("trigger").onclick=()=>{recording?stopRec():startRec();};
+/* ---------- photos ---------- */
+// A photo is the frame on screen, film look and all, kept as a JPEG at the size the picture is drawn.
+let snapWanted=false,snapBusy=false;
+function takePhoto(){
+  const film=FORMATS[S.format].name+" "+S.stock,aspect=cv.width/cv.height,size=cv.width+" × "+cv.height;
+  const keep=blob=>{
+    snapBusy=false;
+    if(!blob||!blob.size){toast("That photo did not come out. Try again.");return;}
+    const d=new Date(),z=n=>String(n).padStart(2,"0"),url=URL.createObjectURL(blob);
+    clips.unshift({photo:true,blob,url,ext:"jpg",secs:0,
+      name:"reel8-"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"-"+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+"-"+z(Math.floor(d.getMilliseconds()/10)),
+      label:film,size,aspect,poster:url});
+    renderClips();
+  };
+  try{cv.toBlob(keep,"image/jpeg",.95);}catch(e){keep(null);}
+}
+function snap(){
+  if(snapBusy||snapWanted) return;
+  snapBusy=true;snapWanted=true;
+  const c=$("cam");c.classList.add("snap");setTimeout(()=>c.classList.remove("snap"),110);     // the picture blinks, like a shutter
+  setTimeout(()=>{if(snapWanted){snapWanted=false;snapBusy=false;toast("That photo did not come out. Try again.");}},4000);
+}
+$("modeSeg").onclick=e=>{
+  const v=e.target.dataset&&e.target.dataset.v;if(!v||v===S.shoot) return;
+  if(recording){toast("Stop recording to switch to photo.");return;}
+  S.shoot=v;remember();paint();
+};
+$("trigger").onclick=()=>{if(recording) stopRec();else if(S.shoot==="photo") snap();else startRec();};
 
 /* ---------- saving ---------- */
 let dlPromise=null;
@@ -1462,7 +1492,7 @@ function saveOutsideClaude(c,btn,filename){
   const link=()=>{const a=document.createElement("a");a.href=c.url;a.download=filename;document.body.appendChild(a);a.click();a.remove();btn.textContent="Saved";};
   if(IS_IOS&&navigator.canShare){
     let file=null;
-    try{file=new File([c.blob],filename,{type:c.ext==="mp4"?"video/mp4":"video/webm"});}catch(e){}
+    try{file=new File([c.blob],filename,{type:c.ext==="jpg"?"image/jpeg":c.ext==="mp4"?"video/mp4":"video/webm"});}catch(e){}
     if(file&&navigator.canShare({files:[file]})){
       navigator.share({files:[file]}).then(()=>{btn.textContent="Done";}).catch(e=>{if(!e||e.name!=="AbortError") link();});
       return;
@@ -1492,13 +1522,15 @@ function renderClips(){
   const box=$("clips");box.textContent="";
   for(const c of clips){
     const el=document.createElement("div");el.className="clip";
-    const v=document.createElement("video");v.src=c.url;v.controls=true;v.playsInline=true;v.preload="metadata";
+    let v;
+    if(c.photo){v=document.createElement("img");v.src=c.url;v.alt="Photo on "+c.label;}
+    else{v=document.createElement("video");v.src=c.url;v.controls=true;v.playsInline=true;v.preload="metadata";}
     if(c.hevc&&!c.checked){                          // a clip in the newer format that will not open: fall back for the next shots and say so
       c.checked=true;
       v.addEventListener("error",()=>{noHevc();toast("This clip did not record properly. The next ones will use the older video format.",4200);},{once:true});
     }
-    v.style.aspectRatio=String(c.aspect);if(c.poster) v.poster=c.poster;
-    const meta=document.createElement("div");meta.className="meta";meta.textContent=c.label+" · "+c.fps+" fps · "+c.secs+" s";
+    v.style.aspectRatio=String(c.aspect);if(c.poster&&!c.photo) v.poster=c.poster;
+    const meta=document.createElement("div");meta.className="meta";meta.textContent=c.photo?c.label+" · photo · "+c.size:c.label+" · "+c.fps+" fps · "+c.secs+" s";
     const row=document.createElement("div");row.className="row";
     const sv=document.createElement("button");sv.className="primary";sv.textContent="Save";sv.onclick=()=>saveClip(c,sv);
     const del=document.createElement("button");del.className="second";del.textContent="Delete";
@@ -1506,12 +1538,12 @@ function renderClips(){
     row.append(sv,del);el.append(v,meta,row);box.append(el);
   }
   $("galleryNote").textContent=clips.length
-    ?"Clips stay here only while this page is open. Save the ones you want to keep."
-    :"No clips yet. Press the red button to record one.";
+    ?"Clips and photos stay here only while this page is open. Save the ones you want to keep."
+    :"Nothing here yet. Press the round button to record a clip or take a photo.";
   $("clipCount").textContent=clips.length;
   const gb=$("galleryBtn"),face=clips.length?clips[0].poster:"";
   gb.classList.toggle("has",!!face);gb.style.backgroundImage=face?"url("+face+")":"";
-  gb.setAttribute("aria-label",clips.length?"Open clips ("+clips.length+")":"Open clips");
+  gb.setAttribute("aria-label",clips.length?"Open clips and photos ("+clips.length+")":"Open clips and photos");
 }
 
 /* ---------- controls ---------- */
@@ -1524,7 +1556,7 @@ function buildStocks(){
     const c=document.createElement("canvas");c.width=TH.tw||104;c.height=TH.th||138;
     const t=document.createElement("span");t.className="code";t.textContent=name;
     b.append(c,t);
-    b.onclick=()=>{if(recording){toast("Stop recording to change film.");return;}S.stockBy[S.format]=name;remember();paint();filmSheet(false);};
+    b.onclick=()=>{if(recording){toast("Stop recording to change film.");return;}S.stockBy[S.format]=name;remember();paint();filmSheet(false);dip();};
     row.append(b);
   }
   TH.tw=0;sizeStrip();stripShown="";
@@ -1552,6 +1584,7 @@ function paint(){
   $("lockBtn").innerHTML=S.lock?LOCK_SHUT:LOCK_OPEN;
   $("lockBtn").setAttribute("aria-pressed",S.lock);
   $("lockBtn").setAttribute("aria-label",S.lock?"Unlock exposure":"Lock exposure");
+  if($("cam").classList.contains("rolling")!==recording){const tg=$("trigger");tg.classList.remove("pulse");void tg.offsetWidth;tg.classList.add("pulse");}   // a pulse as the film starts or stops
   $("cam").classList.toggle("rolling",recording);
   for(const b of $("shapeSeg").children) b.setAttribute("aria-pressed",b.dataset.v===S.shape);
   $("shapeSeg").hidden=isVhs;
@@ -1559,7 +1592,9 @@ function paint(){
   $("pic").classList.toggle("grid",S.grid);$("gridSwitch").setAttribute("aria-checked",S.grid);
   $("evRead").hidden=S.ev===0;$("evRead").textContent=(S.ev>0?"+":"−")+Math.abs(S.ev).toFixed(1);     // (not "rec": that name is the lamp's own style)
   $("trigger").setAttribute("aria-pressed",recording);
-  $("trigger").setAttribute("aria-label",recording?"Stop recording":"Start recording");
+  $("trigger").setAttribute("aria-label",recording?"Stop recording":S.shoot==="photo"?"Take a photo":"Start recording");
+  $("cam").classList.toggle("photo",S.shoot==="photo");
+  for(const b of $("modeSeg").children) b.setAttribute("aria-pressed",b.dataset.v===S.shoot);
   for(const b of $("strip").children) b.setAttribute("aria-pressed",b.dataset.v===S.stock);
   if(stripShown!==S.stock){const first=!stripShown;stripShown=S.stock;showFilmInStrip(!first);}
   $("strip").classList.toggle("locked",recording);
@@ -1596,7 +1631,17 @@ $("filmClose").onclick=()=>filmSheet(false);
 $("shapeSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(!v||v===S.shape) return;
   if(recording){toast("Stop recording to change the shape.");return;}
+  const was=cv.getBoundingClientRect();
   S.shape=v;TH.tw=0;remember();paint();sizeStrip();sizeCanvas(srcAspect);
+  const now=cv.getBoundingClientRect();
+  if(was.width>1&&now.width>1&&!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)){
+    const t="translate("+((was.left+was.width/2)-(now.left+now.width/2))+"px,"+((was.top+was.height/2)-(now.top+now.height/2))+"px) scale("+was.width/now.width+","+was.height/now.height+")";
+    cv.style.transition="none";cv.style.transform=t;picBox.style.transition="none";picBox.style.opacity="0";   // the corner marks step aside while the frame moves
+    void cv.offsetWidth;                              // start from the old shape...
+    cv.style.transition="transform .26s cubic-bezier(.2,.8,.2,1),opacity .16s";cv.style.transform="";      // ...and glide to the new one
+    setTimeout(()=>{cv.style.transition="";picBox.style.transition="opacity .18s";picBox.style.opacity="";setTimeout(()=>{picBox.style.transition="";},220);},280);
+    dip();
+  }
   if(mode==="live"&&liveStream&&(v!=="16:9")!==LENS.full&&!LENS.busy){        // the other kind of camera picture is needed: open the camera again
     LENS.busy=true;const id=LENS.i>=0&&LENS.list[LENS.i]?LENS.list[LENS.i].id:undefined;
     startLive(true,id).then(ok=>ok||startLive(true)).then(()=>{},()=>{}).then(()=>{LENS.busy=false;});
@@ -1694,11 +1739,12 @@ function showFilmTag(dir){
   tag.classList.add(dir>0?"inR":"inL");                   // the name comes in from the side the finger started on
   clearTimeout(tagT);tagT=setTimeout(()=>tag.classList.add("off"),1100);
 }
+function dip(){const c=$("cam");c.classList.add("swap");setTimeout(()=>c.classList.remove("swap"),120);}   // a soft blink of the picture as something changes
 function stepStock(dir){
   if(recording){toast("Stop recording to change film.");return;}
   const list=FORMATS[S.format].stocks,n=list.length;
   S.stockBy[S.format]=list[(list.indexOf(S.stock)+dir+n)%n];
-  remember();paint();showFilmTag(dir);
+  remember();paint();showFilmTag(dir);dip();
 }
 // On the picture: a sideways flick changes film; sliding up or down sets exposure (up is brighter); two fingers pinch to zoom.
 {
@@ -1721,7 +1767,7 @@ function stepStock(dir){
     if(!sw.mode&&Math.abs(dy)>14&&Math.abs(dy)>Math.abs(dx)*1.5) sw.mode="ev";      // clearly up or down: exposure
     if(sw.mode==="ev"){
       const v=Math.max(-3,Math.min(3,Math.round((sw.ev-(dy-Math.sign(dy)*14)/sw.h*4)*10)/10))||0;   // the whole height of the picture is four stops
-      if(v!==S.ev){S.ev=v;paint();}
+      if(v!==S.ev){S.ev=v;const r=$("evRead");r.hidden=v===0;r.textContent=(v>0?"+":"−")+Math.abs(v).toFixed(1);}   // only the figure is redrawn while the finger moves
     }
   });
   const end=e=>{
@@ -1729,7 +1775,8 @@ function stepStock(dir){
     pts.delete(e.pointerId);
     if(two){if(pts.size<2){two=null;sw=null;setTimeout(()=>{if(!zoomDir&&!two)$("zoomRead").classList.add("off");},900);}return;}
     if(!sw||e.pointerId!==sw.id) return;
-    const dx=e.clientX-sw.x,dy=e.clientY-sw.y,dt=e.timeStamp-sw.t,mode=sw.mode;sw=null;   // the finger's own timing, so a busy phone cannot spoil a swipe
+    const dx=e.clientX-sw.x,dy=e.clientY-sw.y,dt=e.timeStamp-sw.t,mode=sw.mode;sw=null;
+    if(mode==="ev") paint();                          // the finger is off: bring everything else up to date   // the finger's own timing, so a busy phone cannot spoil a swipe
     if(e.type!=="pointerup"||mode==="ev") return;
     if(Math.abs(dx)<40||Math.abs(dx)<Math.abs(dy)*1.5||dt>1000) return;     // a clear sideways flick only
     stepStock(dx<0?1:-1);                                                   // finger moves left: next film

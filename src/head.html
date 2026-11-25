@@ -175,14 +175,14 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visibl
 input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);background:transparent}
 .clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 .clip{background:#1d1e20;border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
-.clip video{width:100%;aspect-ratio:3/4;object-fit:contain;background:#000;display:block}
+.clip video,.clip img{width:100%;aspect-ratio:3/4;object-fit:contain;background:#000;display:block}
 .clip .meta{padding:8px;font-size:12px;color:#b9b8b3}
 .clip .row{display:flex;gap:6px;padding:0 8px 8px}
 .clip .row button{flex:1;height:40px;border-radius:6px;font-size:13px;font-weight:600}
 .note{margin:0;font-size:13px;line-height:1.5;color:#b9b8b3}
 .note a{color:var(--lamp)}
 .srcvid{position:absolute;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none}
-#cam.bare #pic,#cam.bare .bar,#cam.bare .shape{display:none}              /* for tests that compare the picture pixel by pixel */
+#cam.bare #pic,#cam.bare .bar,#cam.bare .pills{display:none}              /* for tests that compare the picture pixel by pixel */
 @supports (height:100dvh){html,body{height:100dvh}}
 @media (prefers-reduced-motion:reduce){.rec i,.filmtag{animation:none !important}*{transition:none !important}}
 @media (max-height:640px){#cam .deck{padding:6px 28px 10px}.trigger{width:68px;height:68px}.trigger b{width:54px;height:54px}.key{height:42px}}
@@ -215,11 +215,15 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
 #zoomRead.off{opacity:0}
 #cam .hist{left:12px;top:auto;bottom:12px;pointer-events:none}
 #evRead{position:absolute;right:12px;top:54px;min-width:48px;height:30px;padding:0 10px;border-radius:15px;background:rgba(0,0,0,.42);color:var(--lamp);font-size:14px;pointer-events:auto}
-.shape{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:2px;padding:3px;border-radius:21px;background:rgba(0,0,0,.42)}
+.pills{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:8px;max-width:100%}
+.shape{display:flex;gap:2px;padding:3px;border-radius:21px;background:rgba(0,0,0,.42)}
+.shape[hidden]{display:none}
+#modeSeg button{min-width:58px}
 .shape button{min-width:50px;height:36px;padding:0 10px;border-radius:18px;font-size:14px;font-weight:560;font-stretch:88%;color:rgba(244,241,232,.82)}
 .shape button[aria-pressed="true"]{background:rgba(244,241,232,.16);color:var(--lamp)}
 #cam.rolling .shape{opacity:.35}
-#cam.carded .shape{visibility:hidden}
+@media (max-width:359px){.shape button{min-width:44px;padding:0 6px}#modeSeg button{min-width:52px}}
+#cam.carded .pills{visibility:hidden}
 .deck{padding:12px 28px 16px}
 .clipsbtn{width:50px;height:50px;border-radius:50%}
 .morebtn{justify-self:end;width:50px;height:50px;border-radius:50%;background:#17181a;display:flex;align-items:center;justify-content:center;gap:4px}
@@ -239,7 +243,7 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
   .deck{grid-template-columns:none;grid-template-rows:1fr auto 1fr;justify-items:center;align-items:center;padding:14px 10px;gap:0}
   .deck .clipsbtn,.deck .clipsbtn.has{order:3;align-self:start;margin-top:22px;width:50px;height:50px;flex-direction:column;gap:0}
   .deck .trigger{order:2}.deck .morebtn{order:1;align-self:end;margin-bottom:22px;justify-self:center}
-  .shape{bottom:6px}
+  .pills{bottom:6px}
   #filmSheet .strip{flex-direction:row}
 }
 
@@ -262,6 +266,21 @@ button:active{transform:scale(.93)}
   .deck .flipbtn{order:1;align-self:end;margin-bottom:22px;justify-self:center}
 }
 @media (prefers-reduced-motion:reduce){.sheet,.sheet[hidden],button,#view{transition:none}}
+
+/* ---- app feel, second pass ---- */
+#view{transition:opacity .16s}
+#cam:not(.ready) #view{opacity:0;transition:opacity .45s ease}
+#cam.ready #view{transition:opacity .45s ease}
+#cam.ready.swap #view,#cam.ready.turning #view{transition:opacity .1s}
+#cam.swap #view{opacity:.55}
+#cam #pic::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;box-shadow:inset 0 0 0 2px var(--rec);pointer-events:none;opacity:0;transition:opacity .2s}
+#cam.rolling #pic::after{opacity:1}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(244,241,232,.55)}100%{box-shadow:0 0 0 16px rgba(244,241,232,0)}}
+.trigger.pulse{animation:pulse .45s ease-out}
+/* photo: the button turns white, and the picture blinks like a shutter */
+#cam.photo .trigger b{background:var(--paper)}
+#cam.snap #view{opacity:0;transition:none}
+@media (prefers-reduced-motion:reduce){#view,#cam:not(.ready) #view,#cam.ready #view{transition:none}.trigger.pulse{animation:none}}
 </style>
 </head>
 <body>
@@ -292,7 +311,7 @@ button:active{transform:scale(.93)}
     </div>
     <div class="filmtag off" id="filmTag" role="status"><b id="filmTagName">200T</b><span id="filmTagDots" aria-hidden="true"></span></div>
     <div class="toast off" id="toast" role="status"></div>
-    <div class="shape" id="shapeSeg" role="group" aria-label="Picture shape"><button data-v="1:1">1:1</button><button data-v="4:3">4:3</button><button data-v="16:9">16:9</button></div>
+    <div class="pills"><div class="shape" id="shapeSeg" role="group" aria-label="Picture shape"><button data-v="1:1">1:1</button><button data-v="4:3">4:3</button><button data-v="16:9">16:9</button></div><div class="shape" id="modeSeg" role="group" aria-label="Photo or video"><button data-v="photo">Photo</button><button data-v="video">Video</button></div></div>
   </main>
 
   <footer class="deck">
@@ -371,9 +390,9 @@ button:active{transform:scale(.93)}
     <p class="note" id="homeNote" hidden>For a bigger picture, put this page on your Home Screen: press Share, then Add to Home Screen, and open it from there.</p>
   </section>
 
-  <section class="sheet full" id="gallery" hidden aria-label="Clips">
+  <section class="sheet full" id="gallery" hidden aria-label="Clips and photos">
     <div class="head"><h2>Clips</h2><button id="galleryClose" aria-label="Close clips">&times;</button></div>
-    <p class="note" id="galleryNote">No clips yet. Press the red button to record one.</p>
+    <p class="note" id="galleryNote">Nothing here yet. Press the round button to record a clip or take a photo.</p>
     <div class="clips" id="clips"></div>
   </section>
 

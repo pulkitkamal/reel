@@ -8,6 +8,8 @@ What it does now:
 
 - A clean screen: black, with the picture from edge to edge. On it are only the film name and speed at the top, "more" in the top corner, the picture shape (1:1, 4:3 or 16:9), Clips, the record button and a button that turns to the other camera.
 - 1:1 and 4:3 use the camera's whole sensor; 16:9 uses the wide video picture.
+- Photo or Video: a small switch beside the picture shape. In Photo the round button turns white and one tap keeps the frame on screen, film look and all, as a JPEG. Photos sit with the clips and save the same way.
+- Small touches: the picture fades in at start-up, blinks softly when the film changes, glides when the shape changes, and the record button pulses.
 - Tap the film name to open the Films sheet: a row of live previews, one for each film. Tap one to load it. A sideways flick on the picture also changes film.
 - Twelve films, each clearly its own: 50D, 100D, 200T, 250D, 500T, K64 (Kodachrome 64), Velvia, Pro 400H, Portra 400, Gold, Ektar and B&W.
 - On the picture: slide a finger up or down for exposure (the figure shows on the picture; tap it for zero), pinch with two fingers to zoom.
