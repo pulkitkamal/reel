@@ -242,6 +242,26 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
   .shape{bottom:6px}
   #filmSheet .strip{flex-direction:row}
 }
+
+/* ---- feel: things glide and answer the finger at once ---- */
+.sheet{transition:transform .28s cubic-bezier(.2,.85,.25,1),opacity .2s ease,visibility 0s}
+/* (a short rise, not a full slide: a sheet parked far below the screen would let the page be scrolled down to it) */
+.sheet[hidden]{display:block !important;transform:translateY(36px);opacity:0;visibility:hidden;pointer-events:none;transition:transform .2s ease-in,opacity .18s ease,visibility 0s .2s}
+#cam{overflow:clip}
+button{transition:transform .09s ease-out,opacity .12s,background-color .12s}
+button:active{transform:scale(.93)}
+.switch:active,.ticks:active{transform:none}
+.trigger:active{transform:scale(.95)}
+.shape button:active{background:rgba(244,241,232,.1)}
+#view{transition:opacity .16s}
+#cam.turning #view{opacity:.25}
+.bar .morebtn{grid-column:3;justify-self:end;width:44px;height:44px;background:rgba(0,0,0,.3)}
+.flipbtn{justify-self:end;width:50px;height:50px;border-radius:50%;background:#17181a;display:grid;place-items:center;color:var(--paper)}
+#zoomRead{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);padding:5px 12px;border-radius:15px;background:rgba(0,0,0,.42);font-size:15px;pointer-events:none}
+@media (orientation:landscape) and (max-height:540px){
+  .deck .flipbtn{order:1;align-self:end;margin-bottom:22px;justify-self:center}
+}
+@media (prefers-reduced-motion:reduce){.sheet,.sheet[hidden],button,#view{transition:none}}
 </style>
 </head>
 <body>
@@ -257,8 +277,9 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
     <header class="bar" id="bar">
       <div class="rec" id="recLamp" hidden><i></i><span class="num" id="recTime">00:00</span></div>
       <div class="mid"><button class="code" id="stockBtn" aria-label="Film in the camera">200T</button><span id="fpsWrap"><b class="num" id="fpsRead">18</b></span></div>
-      <span class="num off" id="zoomRead">1.0&times;</span>
+      <button class="morebtn" id="settingsBtn" aria-label="More: light, lens, speed, sound, exposure and settings"><i></i><i></i><i></i></button>
     </header>
+    <span class="num off" id="zoomRead">1.0&times;</span>
     <button class="chip" id="srcChip" hidden>Change clip</button>
     <div class="card" id="srcCard" hidden>
       <button class="x" id="cardClose" aria-label="Close" hidden>&times;</button>
@@ -277,7 +298,7 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
   <footer class="deck">
     <button class="clipsbtn" id="galleryBtn" aria-label="Open clips"><b class="num" id="clipCount">0</b><span class="lab">clips</span></button>
     <button class="trigger" id="trigger" aria-pressed="false" aria-label="Start recording"><b></b></button>
-    <button class="morebtn" id="settingsBtn" aria-label="More: light, lens, speed, sound, exposure and settings"><i></i><i></i><i></i></button>
+    <button class="flipbtn" id="flipBtn" aria-label="Turn to the other camera"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3L19.5 9"/><path d="M19.5 4.5V9H15"/><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3L4.5 15"/><path d="M4.5 19.5V15H9"/></svg></button>
   </footer>
 
   <section class="sheet" id="filmSheet" hidden aria-label="Films">
@@ -346,6 +367,7 @@ input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--lamp);backg
       <input type="range" id="speedRange" min="0.4" max="2" step="0.1" value="1">
     </div>
     <p class="note" id="camStatus"></p>
+    <p class="note" id="lutStatus"></p>
     <p class="note" id="homeNote" hidden>For a bigger picture, put this page on your Home Screen: press Share, then Add to Home Screen, and open it from there.</p>
   </section>
 

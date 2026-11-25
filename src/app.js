@@ -22,9 +22,8 @@ const TAPES={
 // Two films that exist only as spektrafilm colour tables (see luts.js). Their own-colour values are stand-ins for the moment before a table has loaded.
 FILM_STOCKS["250D"]=Object.assign({},FILM_STOCKS["50D"],{grain:.52,hal:4.8,bloom:.13,sf:true});
 FILM_STOCKS["K64"]=Object.assign({},FILM_STOCKS["100D"],{grain:.40,hal:2.6,bloom:.07,sf:true});
-// Photo films, also table-only. Grain goes with the film's speed; slide films (Velvia, Provia) glow less round lights, as slides do.
-for(const [name,like,grain,hal,bloom] of [["VELVIA","100D",.38,2.6,.07],["PROVIA","100D",.40,2.8,.08],["400H","50D",.58,4.6,.13],["C200","50D",.50,4.6,.13],
-  ["P160","50D",.44,4.4,.12],["P400","50D",.58,4.6,.13],["GOLD","50D",.50,4.8,.13],["EKTAR","50D",.40,4.2,.11],["ULTRA","50D",.60,4.8,.13]])
+// Photo films, also table-only. Grain goes with the film's speed; the slide film (Velvia) glows less round lights, as slides do.
+for(const [name,like,grain,hal,bloom] of [["VELVIA","100D",.38,2.6,.07],["400H","50D",.58,4.6,.13],["P400","50D",.58,4.6,.13],["GOLD","50D",.50,4.8,.13],["EKTAR","50D",.40,4.2,.11]])
   FILM_STOCKS[name]=Object.assign({},FILM_STOCKS[like],{grain,hal,bloom,sf:true});
 // The Super 8 look, as chosen from three strengths shown side by side (the strongest): a soft picture (the small size and blur below),
 // twice the glow round lights, three and a half times the bloom, and blacks lifted off the floor to a milky dark grey.
@@ -32,7 +31,7 @@ const LOOK={hal:2,bloom:3.5,lift:.05};
 // Picture shapes. The long side follows the way the phone is held: 4:3 is upright 3:4 on an upright phone.
 const SHAPES={"1:1":1,"4:3":4/3,"16:9":16/9};
 const FORMATS={
-  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","PROVIA","400H","C200","P160","P400","GOLD","EKTAR","ULTRA","B&W"],pShort:380,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.75,halo:2.1,dsz:1.0,dmg:1.0},
+  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","400H","P400","GOLD","EKTAR","B&W"],pShort:380,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.75,halo:2.1,dsz:1.0,dmg:1.0},
   s16:{name:"SUPER 16",aspect:5/3,fps:[24,25],stocks:Object.keys(FILM_STOCKS),pShort:880,gs:.9,grainMul:.6,weave:.32,vig:.24,vexp:1.25,ca:.0014,corner:.012,strip:.13,edge:.030,soft:.55,halo:1.0,dsz:.65,dmg:.6},
   vhs:{name:"VHS",     aspect:4/3,fps:[25,30],stocks:Object.keys(TAPES),      pShort:480}
 };
@@ -869,11 +868,12 @@ function loadLuts(){
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);
       let ok=true;try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,im);}catch(e){ok=false;}
       gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.BROWSER_DEFAULT_WEBGL);
-      if(!ok) return;
+      if(!ok){LUT.failed=true;return;}
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
       LUT.tex[k]=t;
     };
+    im.onerror=()=>{LUT.failed=true;};
     im.src=SF_LUT[k];
   }
 }
@@ -1228,7 +1228,10 @@ async function useLens(k){
 }
 async function startLive(quiet,lensId){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(!quiet)toast("This browser can't open the camera here.");return false;}
-  const want={video:{facingMode:S.facing,width:{ideal:1920},height:{ideal:1080}},audio:true};
+  // 1:1 and 4:3 pictures ask for the camera's whole sensor (it is 4:3), so nothing is thrown away at the sides; 16:9 asks for the wide video picture.
+  const full=S.shape!=="16:9"||S.format!=="s8";
+  const want={video:{facingMode:S.facing,width:{ideal:1920},height:{ideal:full&&S.format==="s8"?1440:1080}},audio:true};
+  LENS.full=full&&S.format==="s8";
   if(lensId){delete want.video.facingMode;want.video.deviceId={exact:lensId};}
   if(S.move) want.video.frameRate={ideal:camRateFor(S.fps)};   // about three camera pictures for each film frame
   let s=null;
@@ -1594,6 +1597,10 @@ $("shapeSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(!v||v===S.shape) return;
   if(recording){toast("Stop recording to change the shape.");return;}
   S.shape=v;TH.tw=0;remember();paint();sizeStrip();sizeCanvas(srcAspect);
+  if(mode==="live"&&liveStream&&(v!=="16:9")!==LENS.full&&!LENS.busy){        // the other kind of camera picture is needed: open the camera again
+    LENS.busy=true;const id=LENS.i>=0&&LENS.list[LENS.i]?LENS.list[LENS.i].id:undefined;
+    startLive(true,id).then(ok=>ok||startLive(true)).then(()=>{},()=>{}).then(()=>{LENS.busy=false;});
+  }
 };
 $("histSwitch").onclick=()=>{S.histo=!S.histo;TH.last=0;remember();paint();};
 $("gridSwitch").onclick=()=>{S.grid=!S.grid;remember();paint();};
@@ -1730,10 +1737,22 @@ function stepStock(dir){
   fd.addEventListener("pointerup",end);fd.addEventListener("pointercancel",end);
 }
 
-$("settingsBtn").onclick=()=>{paintStatus();$("settings").hidden=false;$("settingsClose").focus();};
+function lutStatus(){
+  const n=Object.keys(LUT.tex).length,all=typeof SF_LUT==="undefined"?0:Object.keys(SF_LUT).length;
+  $("lutStatus").textContent="Film colours: "+(LUT.failed?"some could not be loaded on this phone ("+n+" of "+all+").":n===all?"all "+all+" loaded.":n?n+" of "+all+" loaded.":"they load when a film needs them.");
+}
+$("settingsBtn").onclick=()=>{paintStatus();lutStatus();$("settings").hidden=false;$("settingsClose").focus();};
 $("settingsClose").onclick=()=>{$("settings").hidden=true;$("settingsBtn").focus();};
 $("galleryBtn").onclick=()=>{$("gallery").hidden=false;$("galleryClose").focus();};
 $("galleryClose").onclick=()=>{for(const v of $("clips").querySelectorAll("video")) v.pause();$("gallery").hidden=true;$("galleryBtn").focus();};
+// One press on the main screen turns to the other camera. The picture dims for the moment the phone needs.
+$("flipBtn").onclick=()=>{
+  if(recording){toast("Stop recording to turn the camera.");return;}
+  if(mode!=="live"){toast("Turning works with the live camera only.");return;}
+  $("cam").classList.add("turning");setTimeout(()=>$("cam").classList.remove("turning"),700);
+  $("facingSeg").querySelector('[data-v="'+(S.facing==="user"?"environment":"user")+'"]').click();
+};
+document.addEventListener("touchstart",()=>{},{passive:true});   // lets buttons show they are pressed the instant a finger lands (iPhone needs this)
 $("facingSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(!v||v===S.facing) return;
   S.facing=v;LENS.list=[];LENS.i=-1;remember();paint();

@@ -6,9 +6,10 @@ Open it on a phone: https://pulkitkamal.github.io/reel/
 
 What it does now:
 
-- A clean screen: black, with the picture from edge to edge. On it are only the film name and speed at the top, the picture shape (1:1, 4:3 or 16:9), Clips, the record button and "more".
+- A clean screen: black, with the picture from edge to edge. On it are only the film name and speed at the top, "more" in the top corner, the picture shape (1:1, 4:3 or 16:9), Clips, the record button and a button that turns to the other camera.
+- 1:1 and 4:3 use the camera's whole sensor; 16:9 uses the wide video picture.
 - Tap the film name to open the Films sheet: a row of live previews, one for each film. Tap one to load it. A sideways flick on the picture also changes film.
-- Sixteen films: 50D, 100D, 200T, 250D, 500T, K64 (Kodachrome 64), Velvia, Provia, Pro 400H, C200, Portra 160, Portra 400, Gold, Ektar, UltraMax and B&W.
+- Twelve films, each clearly its own: 50D, 100D, 200T, 250D, 500T, K64 (Kodachrome 64), Velvia, Pro 400H, Portra 400, Gold, Ektar and B&W.
 - On the picture: slide a finger up or down for exposure (the figure shows on the picture; tap it for zero), pinch with two fingers to zoom.
 - "More" holds light (the phone's lamp), lens (the rear lenses the browser offers), speed (9, 12, 18 or 24 frames a second), sound on or off, the exposure scale and lock, zoom keys, a live histogram, grid lines, and the settings. Light and lens depend on the phone and its browser; where one is missing the key says so.
 - The Super 8 look is strong: a soft picture, glow and bloom round lights, and blacks lifted to a milky dark grey.

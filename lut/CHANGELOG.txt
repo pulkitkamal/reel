@@ -1,7 +1,7 @@
 Colour tables in this folder
 ============================
 
-These fifteen tables were made with spektrafilm by Andrea Volpato
+These eleven tables were made with spektrafilm by Andrea Volpato
 (https://github.com/andreavolpato/spektrafilm, version 0.3.4, commit 3bb2c2d)
 and are licensed CC BY-SA 4.0. See SPEKTRAFILM_LICENSE.txt in this folder.
 
@@ -14,12 +14,13 @@ How they were made (24 November 2026, for the Reel 8 Camera project):
             (spektrafilm's "scan film" setting), not printed.
 - 250D.png  Kodak Vision3 250D film, printed on Kodak 2383 print film.
 - K64.png   Kodak Kodachrome 64 slide film, the film itself scanned.
-- VELVIA.png, PROVIA.png  Fujifilm Velvia 100 and Provia 100F slide films, the film itself scanned.
-- 400H.png, C200.png  Fujifilm Pro 400H and C200, printed on Kodak 2383 print film.
-- P160.png, P400.png, GOLD.png, EKTAR.png, ULTRA.png  Kodak Portra 160, Portra 400, Gold 200, Ektar 100 and UltraMax 400,
-            printed on Kodak 2383 print film.
+- VELVIA.png  Fujifilm Velvia 100 slide film, the film itself scanned.
+- 400H.png   Fujifilm Pro 400H, printed on Fujifilm Crystal Archive Type II paper.
+- P400.png   Kodak Portra 400, printed on Kodak Portra Endura paper.
+- GOLD.png   Kodak Gold 200, printed on Kodak Ektacolor Edge paper.
+- EKTAR.png  Kodak Ektar 100, printed on Kodak Ultra Endura paper.
 
-Settings used for all fifteen: sRGB in, sRGB out, 33 steps a side, one table,
+Settings used for all eleven: sRGB in, sRGB out, 33 steps a side, one table,
 picture white placed 3.0 stops above middle grey (stops_above_midgray = 3.0).
 
 Changes from spektrafilm's own output:
