@@ -1061,8 +1061,7 @@ function step(now){
   if(!src) return;
   beginFrame(srcAspect);
   if(!expose(src,1)) return;
-  develop(now);
-  if(snapWanted){snapWanted=false;takePhoto();}      // straight after the frame is drawn, while the canvas still holds it
+  develop(now);snapIfWanted();
 }
 
 /* ---------- movement: film frames in step with the camera, and a slight smear ---------- */
@@ -1119,7 +1118,7 @@ function camFrame(now,meta){
     if(MV.parts===0) beginFrame(srcAspect);
     if(expose(video,wk/(MV.wsum+wk))){MV.parts++;MV.wsum+=wk;}
   }
-  if(k>=last&&MV.parts>0){MV.done=true;develop(now);}
+  if(k>=last&&MV.parts>0){MV.done=true;develop(now);snapIfWanted();}
 }
 if(MV.ok) video.requestVideoFrameCallback(onVideoFrame);
 
@@ -1453,6 +1452,7 @@ function finishRec(){
 /* ---------- photos ---------- */
 // A photo is the frame on screen, film look and all, kept as a JPEG at the size the picture is drawn.
 let snapWanted=false,snapBusy=false;
+function snapIfWanted(){if(snapWanted){snapWanted=false;takePhoto();}}   // called straight after every drawn frame (both ways a frame gets drawn), while the canvas still holds it
 function takePhoto(){
   const film=FORMATS[S.format].name+" "+S.stock,aspect=cv.width/cv.height,size=cv.width+" × "+cv.height;
   const keep=blob=>{
@@ -1463,6 +1463,7 @@ function takePhoto(){
       name:"reel8-"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"-"+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+"-"+z(Math.floor(d.getMilliseconds()/10)),
       label:film,size,aspect,poster:url});
     renderClips();
+    toast("Photo taken.",1200);
   };
   try{cv.toBlob(keep,"image/jpeg",.95);}catch(e){keep(null);}
 }
