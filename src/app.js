@@ -45,8 +45,17 @@ const FILTERS=[
 const ACTIVE=["s8"];
 
 /* ---------- state ---------- */
+// What each film is for, in plain words (shown on its label), and the three stripes on that label.
+const FILM_INFO={
+  "50D":["Bright sun. Clean and fine",["#e5642b","#dfa53a","#f3d98b"]],"100D":["Bright sun. Rich colour",["#cf3a2e","#e5642b","#dfa53a"]],
+  "200T":["Indoor light. Warm, classic",["#e5642b","#dfa53a","#2f5d7c"]],"250D":["Any daylight. Soft all-rounder",["#dfa53a","#7a9a5b","#2f5d7c"]],
+  "500T":["Night. Grainy and moody",["#2f5d7c","#1d3348","#cf3a2e"]],"K64":["Old home movies. Deep reds",["#cf3a2e","#dfa53a","#1d1b18"]],
+  "VELVIA":["Very vivid. Landscapes",["#2f7d4f","#cf3a2e","#5b3a8a"]],"400H":["Pastel. Soft greens",["#8fc0a9","#f1c6c0","#dfe6c8"]],
+  "P400":["Kind to skin. Gentle",["#e8b9a0","#dfa53a","#8a6a55"]],"GOLD":["Warm holiday snaps",["#dfa53a","#e5642b","#7a4a1e"]],
+  "EKTAR":["Punchy and sharp",["#cf3a2e","#2f5d7c","#dfa53a"]],"B&W":["Black and white",["#1d1b18","#8a867e","#d6d1c4"]]};
+function filmStripes(el,name){const f=FILM_INFO[name];if(!f) return;f[1].forEach((c,i)=>el.style.setProperty("--s"+(i+1),c));}
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video"};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video"};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
@@ -59,15 +68,13 @@ try{
     if(saved.fpsBy&&FORMATS[f].fps.includes(saved.fpsBy[f])) S.fpsBy[f]=saved.fpsBy[f];
   }
   if(saved.facing==="user") S.facing="user";
-  S.overscan=!!saved.overscan;
+  // Overscan, the grain and colour comparisons, the lens flare and the movement switch have left the screen: the camera always starts
+  // with no film edge, the rebuilt grain, its own colour, no lens flare, and film movement on, whatever an older visit had stored.
   if([0,1,2,3].includes(saved.side)) S.side=saved.side;
   if(saved.filter>=0&&saved.filter<FILTERS.length) S.filter=saved.filter|0;
   if(saved.zoomSpeed) S.zoomSpeed=Math.min(2,Math.max(.4,+saved.zoomSpeed||1));
   if(saved.filmFlare===false) S.burn=false;
   if(saved.lensFlare===false) S.lens=false;
-  if(saved.movement===false) S.move=false;
-  if(saved.colour==="spektrafilm") S.colour=1;
-  if(saved.grainTry===0||saved.grainTry===1) S.grain=saved.grainTry;
   if(saved.sound===false) S.sound=false;
   if(SHAPES[saved.shape]) S.shape=saved.shape;
   if(saved.histo===true) S.histo=true;
@@ -1540,10 +1547,10 @@ function renderClips(){
   }
   $("galleryNote").textContent=clips.length
     ?"Clips and photos stay here only while this page is open. Save the ones you want to keep."
-    :"Nothing here yet. Press the round button to record a clip or take a photo.";
+    :"Nothing here yet. Press Record to film a clip, or switch to Photo.";
   $("clipCount").textContent=clips.length;
   const gb=$("galleryBtn"),face=clips.length?clips[0].poster:"";
-  gb.classList.toggle("has",!!face);gb.style.backgroundImage=face?"url("+face+")":"";
+  gb.classList.toggle("has",!!face);$("rollThumb").style.backgroundImage=face?"url("+face+")":"";
   gb.setAttribute("aria-label",clips.length?"Open clips and photos ("+clips.length+")":"Open clips and photos");
 }
 
@@ -1556,7 +1563,8 @@ function buildStocks(){
     const b=document.createElement("button");b.className="film";b.dataset.v=name;b.setAttribute("aria-label",name+" film");
     const c=document.createElement("canvas");c.width=TH.tw||104;c.height=TH.th||138;
     const t=document.createElement("span");t.className="code";t.textContent=name;
-    b.append(c,t);
+    const d=document.createElement("span");d.className="ds";d.textContent=FILM_INFO[name]?FILM_INFO[name][0]:"";filmStripes(b,name);
+    b.append(c,t,d);
     b.onclick=()=>{if(recording){toast("Stop recording to change film.");return;}S.stockBy[S.format]=name;remember();paint();filmSheet(false);dip();};
     row.append(b);
   }
@@ -1575,7 +1583,9 @@ function showFilmInStrip(smooth){                    // bring the film in use in
 }
 function paint(){
   const isVhs=S.format==="vhs",live=mode==="live";
-  $("stockBtn").textContent=S.stock;$("stockBtn").setAttribute("aria-label","Film in the camera: "+S.stock);
+  $("stockBtn").textContent=S.stock;$("stockBtn").setAttribute("aria-label","Film in the camera: "+S.stock+". Press to change it");
+  filmStripes($("filmLabel"),S.stock);$("filmSub").textContent=FILM_INFO[S.stock]?FILM_INFO[S.stock][0].split(".")[0]:"";
+  $("trigLabel").textContent=recording?"Stop":S.shoot==="photo"?"Photo":"Record";
   const ev=(S.ev>0?"+":S.ev<0?"−":"")+Math.abs(S.ev).toFixed(1),at=((S.ev+3)/6*100)+"%";
   $("evVal").textContent=ev;$("evVal").style.left=at;$("evNeedle").style.left=at;
   $("evTicks").setAttribute("aria-valuenow",S.ev.toFixed(1));$("evTicks").setAttribute("aria-valuetext",ev+" stops");
@@ -1628,6 +1638,7 @@ function filmSheet(on){
   if(on){TH.last=0;showFilmInStrip(false);$("filmClose").focus();}else $("stockBtn").focus();
 }
 $("stockBtn").onclick=()=>filmSheet(true);
+$("filmLabel").onclick=e=>{if(e.target.id!=="stockBtn") filmSheet(true);};   // the whole label is the button
 $("filmClose").onclick=()=>filmSheet(false);
 $("shapeSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(!v||v===S.shape) return;

@@ -6,7 +6,8 @@ Open it on a phone: https://pulkitkamal.github.io/reel/
 
 What it does now:
 
-- A clean screen: black, with the picture from edge to edge. On it are only the film name and speed at the top, "more" in the top corner, the picture shape (1:1, 4:3 or 16:9), Clips, the record button and a button that turns to the other camera.
+- The screen is laid out like a cassette recorder. The film in the camera is a paper label at the top (name, what it is for, frames a second) next to a tape counter. Under the picture are two slide switches (picture shape 1:1, 4:3 or 16:9, and Photo or Video). At the bottom are four keys with a word on each: Roll, Record, Flip, More.
+- Films open as a shelf of tapes. Each has a small live picture and one plain line about what it is good for.
 - 1:1 and 4:3 use the camera's whole sensor; 16:9 uses the wide video picture.
 - Photo or Video: a small switch beside the picture shape. In Photo the round button turns white and one tap keeps the frame on screen, film look and all, as a JPEG. Photos sit with the clips and save the same way.
 - Small touches: the picture fades in at start-up, blinks softly when the film changes, glides when the shape changes, and the record button pulses.
@@ -38,3 +39,6 @@ Files:
 - `lut/` holds the color tables as pictures, with their licence.
 - `fonts/` holds the typeface file, with its licence.
 - `manifest.webmanifest`, `icons/` and `sw.js` are what make it an app on the Home Screen and let it open without a connection.
+
+
+Not on the screen any more: the overscan switch, the grain and colour comparisons, the lens flare (off until it is redone) and the film movement switch (always on).

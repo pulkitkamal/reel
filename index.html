@@ -283,6 +283,105 @@ button:active{transform:scale(.93)}
 #cam.photo .trigger b{background:var(--paper)}
 #cam.snap #view{opacity:0;transition:none}
 @media (prefers-reduced-motion:reduce){#view,#cam:not(.ready) #view,#cam.ready #view{transition:none}.trigger.pulse{animation:none}}
+
+/* ================= the recorder =================
+   Taken from cassette recorders and the tapes that went in them. The film in the camera is a paper label, the clock is a tape counter,
+   choices are slide switches, and the things you press are keys with a word on each. The body is warm black; paper is cream;
+   amber marks what is chosen; red is for recording only. The picture itself carries no decoration. */
+:root{--bodyc:#1a1917;--tray:#0d0d0c;--cream:#efe6d2;--inkc:#1d1b18;--al1:#dcd9d2;--al2:#9a968e;--eng:#a8a39a}
+#cam,.finder{background:var(--bodyc)}
+.finder .bar{display:flex;gap:8px;height:auto;padding:6px 10px 0;background:none;text-shadow:none;align-items:stretch}
+.label{flex:1;min-width:0;max-width:420px;height:46px;display:flex;align-items:center;overflow:hidden;border-radius:4px;background:var(--cream);color:var(--inkc);cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.5);--s1:#e5642b;--s2:#dfa53a;--s3:#2f5d7c}
+.label .stripes,.film::before{background:linear-gradient(var(--s1) 0 33.4%,var(--s2) 33.4% 66.7%,var(--s3) 66.7%)}
+.label .stripes{flex:none;width:28px;align-self:stretch}
+#cam #stockBtn{flex:none;margin-left:10px;font-size:29px;line-height:46px;min-width:0;color:var(--inkc)}
+.label .sub{min-width:0;margin-left:10px;display:flex;flex-direction:column;font-size:12.5px;line-height:1.22;font-stretch:88%;font-weight:500;color:#5a554c;white-space:nowrap;overflow:hidden}
+#cam #fpsRead{font-size:12.5px;opacity:1;font-weight:500}
+.label .chg{margin-left:auto;padding:0 10px 0 6px;font-size:12px;font-stretch:80%;font-weight:640;letter-spacing:.05em;text-transform:uppercase;color:#7d766a;white-space:nowrap}
+#cam.rolling .label .chg{visibility:hidden}
+#cam #recLamp,#cam #recLamp[hidden]{display:flex !important;flex:none;align-items:center;justify-content:center;gap:6px;min-width:76px;height:46px;padding:0 10px;border-radius:4px;background:var(--tray);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.08);font-size:19px;letter-spacing:.06em;color:#f3efe4}
+#cam #recLamp[hidden] i{display:none}
+#cam.carded .bar{visibility:hidden}
+/* slide switches: a dark groove, and a metal knob on the chosen place */
+.pills{gap:10px}
+.shape{gap:0;padding:2px;border-radius:20px;background:var(--tray);box-shadow:inset 0 2px 4px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.09)}
+.shape button{min-width:50px;height:36px;padding:0 10px;border-radius:18px;font-size:13px;font-stretch:80%;font-weight:640;letter-spacing:.05em;text-transform:uppercase;color:var(--eng)}
+.shape button[aria-pressed="true"]{background:linear-gradient(var(--al1),var(--al2));color:var(--inkc);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 1px 2px rgba(0,0,0,.7)}
+.shape button:active{background:rgba(244,241,232,.08)}
+.shape button[aria-pressed="true"]:active{background:linear-gradient(var(--al1),var(--al2))}
+/* the keys */
+#cam .deck{display:flex;gap:8px;align-items:stretch;margin:0 10px 10px;padding:8px;border-radius:10px;background:var(--tray);box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.07)}
+#cam .rkey{position:relative;flex:1;min-width:0;width:auto;height:80px;border:0;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:0 0 5px;margin:0;
+  background:linear-gradient(#3b3936,#2a2927 70%,#1f1e1c);color:#d9d4c8;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -5px 0 rgba(0,0,0,.35),0 2px 3px rgba(0,0,0,.7);
+  transition:transform .08s ease-out,box-shadow .08s,opacity .12s}
+#cam .rkey:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 -2px 0 rgba(0,0,0,.35),0 1px 1px rgba(0,0,0,.7)}
+.rkey .kl{font-size:12.5px;line-height:1;font-stretch:80%;font-weight:640;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+.rkey .kl b{font-size:inherit;line-height:inherit;font-weight:inherit;position:static;background:none;color:inherit;padding:0;min-width:0;height:auto}
+#cam .rkey.trigger{flex:1.5;background:linear-gradient(#e4513f,#cf3a2e 70%,#a52a20);color:#fff}
+#cam .rkey.trigger>b{width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4);transition:border-radius .15s,width .15s,height .15s}
+#cam .rkey.trigger[aria-pressed="true"]{background:linear-gradient(#ac2c22,#b93327 70%,#9a271e);box-shadow:inset 0 3px 7px rgba(0,0,0,.6),0 1px 1px rgba(0,0,0,.7);padding:4px 0 0;transform:translateY(2px)}
+#cam .rkey.trigger[aria-pressed="true"]>b{width:22px;height:22px;border-radius:5px}
+#cam.photo .rkey.trigger{background:linear-gradient(#fbf4e2,var(--cream) 70%,#cfc5ad);color:var(--inkc)}
+#cam.photo .rkey.trigger>b{background:var(--inkc)}
+.rkey .th{width:30px;height:30px;border-radius:3px;background:#151514 center/cover no-repeat;box-shadow:0 0 0 1.5px rgba(217,212,200,.55)}
+.clipsbtn.has .th{box-shadow:0 0 0 1.5px #d9d4c8}
+#cam .rkey.morebtn{flex:.8}
+.rkey .dots{display:flex;gap:5px;height:26px;align-items:center}.rkey .dots i{width:5px;height:5px;border-radius:50%;background:currentColor}
+#cam.rolling #galleryBtn,#cam.rolling #flipBtn{opacity:.4}
+.trigger.pulse{animation:none}
+@keyframes keylamp{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}100%{box-shadow:0 0 0 12px rgba(255,255,255,0)}}
+#cam .rkey.trigger.pulse>b{animation:keylamp .45s ease-out}
+@media (max-height:640px){#cam .deck{padding:6px;margin-bottom:6px}#cam .rkey{height:64px;gap:5px}}
+@media (max-width:359px){.label .chg{display:none}#cam #recLamp,#cam #recLamp[hidden]{min-width:64px;padding:0 6px;font-size:17px}#cam .deck{gap:6px}}
+@media (orientation:landscape) and (max-height:540px){
+  #cam{grid-template-columns:minmax(0,1fr) 112px}
+  #cam .deck{flex-direction:column;margin:8px 8px 8px 0;padding:6px;gap:6px}
+  #cam .rkey{height:auto;flex:1}#cam .rkey.trigger{flex:1.5;order:0}#cam .rkey.morebtn{flex:1}
+  .deck .clipsbtn,.deck .clipsbtn.has,.deck .flipbtn,.deck .morebtn{order:0;align-self:stretch;margin:0;width:auto;height:auto}
+  .label{max-width:300px}
+}
+/* sheets */
+.sheet{background:#242320;border-top:1px solid rgba(255,255,255,.1);gap:12px}
+.sheet h2{font-size:24px}
+.head button{background:#3a3835;color:#d9d4c8}
+.field>span small,.field>label small{display:block;margin-top:2px;font-size:12.5px;color:var(--eng)}
+.field>span,.field>label{font-size:16px;font-weight:600;font-stretch:88%}
+/* films: a shelf of tapes */
+#filmSheet{padding-right:18px}#filmSheet .head{padding-right:0}
+#filmSheet .strip{flex-direction:column;gap:5px;padding:0;overflow:visible}
+#filmSheet .film{flex-direction:row;align-items:center;gap:0;padding:0;height:46px;border-radius:3px;overflow:hidden;background:var(--cream);color:var(--inkc);text-align:left;position:relative}
+#filmSheet .film::before{content:"";flex:none;width:8px;align-self:stretch}
+#filmSheet .film canvas{flex:none;width:60px !important;height:46px !important;object-fit:cover;border-radius:0;outline:0}
+#filmSheet .film .code{flex:none;width:74px;margin-left:10px;font-size:21px;line-height:1;color:var(--inkc)}
+#filmSheet .film .ds{flex:1;min-width:0;font-size:14px;line-height:1.15;font-stretch:88%;font-weight:500;color:#4f4a42;max-height:2.3em;overflow:hidden}
+#filmSheet .film[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--lamp)}
+#filmSheet .film[aria-pressed="true"] canvas{outline:0}
+#filmSheet .film[aria-pressed="true"] .code{color:var(--inkc)}
+#filmSheet .film[aria-pressed="true"]::after{content:"In camera";flex:none;margin:0 8px;padding:0 6px;border-radius:2px;background:var(--inkc);color:var(--cream);font-size:11px;line-height:19px;font-stretch:80%;font-weight:640;letter-spacing:.06em;text-transform:uppercase}
+@media (max-height:700px){#filmSheet .film{height:40px}#filmSheet .film canvas{height:40px !important}}
+/* more */
+.sheet .keys{gap:6px;margin:0 0 4px;padding:6px;border:0;border-radius:8px;background:var(--tray);box-shadow:inset 0 2px 5px rgba(0,0,0,.9)}
+.sheet .keys .key{height:54px;border:0;border-radius:5px;background:linear-gradient(#3b3936,#2a2927 70%,#1f1e1c);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -4px 0 rgba(0,0,0,.35);padding-bottom:3px}
+.sheet .keys .key .lab{color:var(--eng);text-transform:uppercase;font-stretch:80%;font-weight:640;letter-spacing:.07em;font-size:11px}
+.sheet .scale{height:72px;margin:0;padding:0 2px 2px;border-radius:6px;background:linear-gradient(#f7efda,#e6dcc2);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.sheet .scale>button{color:var(--inkc)}
+.sheet #lockBtn[aria-pressed="true"]{color:#cf3a2e}
+.sheet .ticks i{background:rgba(29,27,24,.5)}.sheet .ticks i.M{background:var(--inkc)}
+.sheet .ticks span{color:var(--inkc)}
+.sheet .needle{background:#cf3a2e;box-shadow:none}
+.sheet #evVal{color:var(--inkc);text-shadow:none;font-weight:640}
+.switch{background:var(--tray);box-shadow:inset 0 2px 4px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.09)}
+.switch::after{background:linear-gradient(var(--al1),var(--al2));box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 1px 2px rgba(0,0,0,.7)}
+.switch[aria-checked="true"]{background:var(--lamp)}
+.seg{padding:2px;border-radius:20px;background:var(--tray);box-shadow:inset 0 2px 4px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.09);gap:0}
+.seg button{border-radius:18px;height:36px;font-size:13px;font-stretch:80%;font-weight:640;letter-spacing:.05em;text-transform:uppercase;color:var(--eng)}
+.seg button[aria-pressed="true"]{background:linear-gradient(var(--al1),var(--al2));color:var(--inkc);font-weight:640;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 1px 2px rgba(0,0,0,.7)}
+.rocker{border:0;border-radius:6px;background:var(--tray);padding:4px;gap:4px;box-shadow:inset 0 2px 4px rgba(0,0,0,.9)}
+.rocker button{border-radius:4px;background:linear-gradient(#3b3936,#2a2927 70%,#1f1e1c);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.35)}
+.rocker button+button{border-left:0}
+.clip{background:#2f2d2a}
 </style>
 </head>
 <body>
@@ -296,9 +395,8 @@ button:active{transform:scale(.93)}
       <button class="num" id="evRead" hidden aria-label="Exposure. Press to set it back to zero"></button>
     </div>
     <header class="bar" id="bar">
-      <div class="rec" id="recLamp" hidden><i></i><span class="num" id="recTime">00:00</span></div>
-      <div class="mid"><button class="code" id="stockBtn" aria-label="Film in the camera">200T</button><span id="fpsWrap"><b class="num" id="fpsRead">18</b></span></div>
-      <button class="morebtn" id="settingsBtn" aria-label="More: light, lens, speed, sound, exposure and settings"><i></i><i></i><i></i></button>
+      <div class="label" id="filmLabel"><i class="stripes" aria-hidden="true"></i><button class="code" id="stockBtn" aria-label="Film in the camera">200T</button><span class="sub"><span id="filmSub">Indoor light</span><span id="fpsWrap"><b class="num" id="fpsRead">18</b> frames a second</span></span><span class="chg" aria-hidden="true">Change &rsaquo;</span></div>
+      <div class="rec counter" id="recLamp" hidden><i></i><span class="num" id="recTime">00:00</span></div>
     </header>
     <span class="num off" id="zoomRead">1.0&times;</span>
     <button class="chip" id="srcChip" hidden>Change clip</button>
@@ -317,14 +415,15 @@ button:active{transform:scale(.93)}
   </main>
 
   <footer class="deck">
-    <button class="clipsbtn" id="galleryBtn" aria-label="Open clips"><b class="num" id="clipCount">0</b><span class="lab">clips</span></button>
-    <button class="trigger" id="trigger" aria-pressed="false" aria-label="Start recording"><b></b></button>
-    <button class="flipbtn" id="flipBtn" aria-label="Turn to the other camera"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3L19.5 9"/><path d="M19.5 4.5V9H15"/><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3L4.5 15"/><path d="M4.5 19.5V15H9"/></svg></button>
+    <button class="rkey clipsbtn" id="galleryBtn" aria-label="Open clips"><i class="th" id="rollThumb" aria-hidden="true"></i><span class="kl">Roll &middot; <b class="num" id="clipCount">0</b></span></button>
+    <button class="rkey trigger" id="trigger" aria-pressed="false" aria-label="Start recording"><b></b><span class="kl" id="trigLabel">Record</span></button>
+    <button class="rkey flipbtn" id="flipBtn" aria-label="Turn to the other camera"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3L19.5 9"/><path d="M19.5 4.5V9H15"/><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3L4.5 15"/><path d="M4.5 19.5V15H9"/></svg><span class="kl">Flip</span></button>
+    <button class="rkey morebtn" id="settingsBtn" aria-label="More: light, lens, speed, sound, brightness and settings"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="kl">More</span></button>
   </footer>
 
   <section class="sheet" id="filmSheet" hidden aria-label="Films">
     <div class="head"><h2>Films</h2><button id="filmClose" aria-label="Close films">&times;</button></div>
-    <p class="note" style="margin:0 0 10px">Each one is live. Tap a film to load it.</p>
+    <p class="note" style="margin:0">Each small picture is live. Tap a film to load it.</p>
     <div class="strip" id="strip" role="group" aria-label="Film"></div>
   </section>
 
@@ -336,23 +435,41 @@ button:active{transform:scale(.93)}
       <button class="key" id="fpsBtn" aria-label="Frames a second"><b class="num">18</b><span class="lab">speed</span></button>
       <button class="key" id="soundKey" aria-pressed="true"><b class="num">on</b><span class="lab">sound</span></button>
     </div>
-    <div class="field"><span>Exposure</span><span class="lab">or slide up and down on the picture</span></div>
+    <div class="field"><span>Brightness<small>Or slide a finger up and down on the picture</small></span></div>
     <div class="scale" id="evScale">
       <button id="lockBtn" aria-pressed="false" aria-label="Lock exposure"></button>
       <div class="ticks" id="evTicks" role="slider" tabindex="0" aria-label="Exposure" aria-valuemin="-3" aria-valuemax="3" aria-valuenow="0"><b class="needle" id="evNeedle"></b><em class="num" id="evVal">0.0</em></div>
     </div>
-    <div class="field"><span>Zoom</span>
+    <div class="field"><span>Zoom<small>Or pinch the picture with two fingers</small></span>
       <div class="rocker" role="group" aria-label="Zoom"><button id="zoomW" aria-label="Zoom out">W</button><button id="zoomT" aria-label="Zoom in">T</button></div>
     </div>
-    <div class="field"><span id="histLabel">Histogram on the picture</span>
+    <div class="field"><span id="histLabel">Light graph<small>Shows how dark or bright the picture is</small></span>
       <button class="switch" id="histSwitch" role="switch" aria-checked="false" aria-labelledby="histLabel"></button>
     </div>
-    <div class="field"><span id="gridLabel">Grid lines</span>
+    <div class="field"><span id="gridLabel">Grid<small>Lines to help you frame</small></span>
       <button class="switch" id="gridSwitch" role="switch" aria-checked="false" aria-labelledby="gridLabel"></button>
     </div>
-    <div class="field"><span>Camera</span>
+    <div class="field"><span>Camera<small>Back or selfie side</small></span>
       <div class="seg" id="facingSeg"><button data-v="environment">Rear</button><button data-v="user">Front</button></div>
     </div>
+    <div class="field"><span id="burnLabel">Light leak<small>A flash of orange as each shot starts</small></span>
+      <button class="switch" id="burnSwitch" role="switch" aria-checked="true" aria-labelledby="burnLabel"></button>
+    </div>
+    <div class="field"><span id="fsndLabel">Old film sound<small>Thin, with a slight sway</small></span>
+      <button class="switch" id="fsndSwitch" role="switch" aria-checked="true" aria-labelledby="fsndLabel"></button>
+    </div>
+    <div class="field"><span id="whirrLabel">Camera whirr<small>Adds the motor noise to the sound</small></span>
+      <button class="switch" id="whirrSwitch" role="switch" aria-checked="false" aria-labelledby="whirrLabel"></button>
+    </div>
+    <div class="slide">
+      <div class="field"><label for="filterRange">Colour filter</label><output id="filterOut" for="filterRange">None</output></div>
+      <input type="range" id="filterRange" min="0" max="8" step="1" value="4">
+    </div>
+    <div class="slide">
+      <div class="field"><label for="speedRange">W/T zoom speed</label><output id="speedOut" for="speedRange">1.0&times;</output></div>
+      <input type="range" id="speedRange" min="0.4" max="2" step="0.1" value="1">
+    </div>
+    <div id="retired" hidden>
     <div class="field"><span id="grainLabel">Grain to compare</span></div>
     <div class="seg" id="grainSeg" role="group" aria-labelledby="grainLabel"><button data-v="2">New</button><button data-v="0">Now</button><button data-v="1">Before</button></div>
     <p class="note" id="grainNote">Here for now, to help choose. New is the rebuilt grain. Now is the one it replaces. Before is the one you called pretty good.</p>
@@ -366,35 +483,20 @@ button:active{transform:scale(.93)}
     <div class="field"><span id="lensLabel">Lens flare (lamps and sun)</span>
       <button class="switch" id="lensSwitch" role="switch" aria-checked="true" aria-labelledby="lensLabel"></button>
     </div>
-    <div class="field"><span id="burnLabel">Film flare at start of shot</span>
-      <button class="switch" id="burnSwitch" role="switch" aria-checked="true" aria-labelledby="burnLabel"></button>
-    </div>
     <div class="field"><span id="moveLabel">Film movement (slight smear)</span>
       <button class="switch" id="moveSwitch" role="switch" aria-checked="true" aria-labelledby="moveLabel"></button>
     </div>
-    <div class="field"><span id="fsndLabel">Film sound (thin, with a slight sway)</span>
-      <button class="switch" id="fsndSwitch" role="switch" aria-checked="true" aria-labelledby="fsndLabel"></button>
-    </div>
-    <div class="field"><span id="whirrLabel">Camera whirr in the sound</span>
-      <button class="switch" id="whirrSwitch" role="switch" aria-checked="false" aria-labelledby="whirrLabel"></button>
-    </div>
-    <p class="note" id="filmOnlyNote" hidden>Overscan and flares are for film only. They are off for VHS.</p>
-    <div class="slide">
-      <div class="field"><label for="filterRange">Color filter</label><output id="filterOut" for="filterRange">None</output></div>
-      <input type="range" id="filterRange" min="0" max="8" step="1" value="4">
-    </div>
-    <div class="slide">
-      <div class="field"><label for="speedRange">W/T zoom speed</label><output id="speedOut" for="speedRange">1.0&times;</output></div>
-      <input type="range" id="speedRange" min="0.4" max="2" step="0.1" value="1">
+    <p class="note" id="filmOnlyNote" hidden></p>
     </div>
     <p class="note" id="camStatus"></p>
     <p class="note" id="lutStatus"></p>
+    <p class="note" id="credit">Some film colours use tables made with <a href="https://github.com/andreavolpato/spektrafilm" target="_blank" rel="noopener">spektrafilm</a> by Andrea Volpato (<a href="https://github.com/andreavolpato/spektrafilm/blob/main/SPEKTRAFILM_LICENSE.txt" target="_blank" rel="noopener">CC BY-SA 4.0</a>).</p>
     <p class="note" id="homeNote" hidden>For a bigger picture, put this page on your Home Screen: press Share, then Add to Home Screen, and open it from there.</p>
   </section>
 
   <section class="sheet full" id="gallery" hidden aria-label="Clips and photos">
-    <div class="head"><h2>Clips</h2><button id="galleryClose" aria-label="Close clips">&times;</button></div>
-    <p class="note" id="galleryNote">Nothing here yet. Press the round button to record a clip or take a photo.</p>
+    <div class="head"><h2>Roll</h2><button id="galleryClose" aria-label="Close clips">&times;</button></div>
+    <p class="note" id="galleryNote">Nothing here yet. Press Record to film a clip, or switch to Photo.</p>
     <div class="clips" id="clips"></div>
   </section>
 
@@ -480,8 +582,17 @@ const FILTERS=[
 const ACTIVE=["s8"];
 
 /* ---------- state ---------- */
+// What each film is for, in plain words (shown on its label), and the three stripes on that label.
+const FILM_INFO={
+  "50D":["Bright sun. Clean and fine",["#e5642b","#dfa53a","#f3d98b"]],"100D":["Bright sun. Rich colour",["#cf3a2e","#e5642b","#dfa53a"]],
+  "200T":["Indoor light. Warm, classic",["#e5642b","#dfa53a","#2f5d7c"]],"250D":["Any daylight. Soft all-rounder",["#dfa53a","#7a9a5b","#2f5d7c"]],
+  "500T":["Night. Grainy and moody",["#2f5d7c","#1d3348","#cf3a2e"]],"K64":["Old home movies. Deep reds",["#cf3a2e","#dfa53a","#1d1b18"]],
+  "VELVIA":["Very vivid. Landscapes",["#2f7d4f","#cf3a2e","#5b3a8a"]],"400H":["Pastel. Soft greens",["#8fc0a9","#f1c6c0","#dfe6c8"]],
+  "P400":["Kind to skin. Gentle",["#e8b9a0","#dfa53a","#8a6a55"]],"GOLD":["Warm holiday snaps",["#dfa53a","#e5642b","#7a4a1e"]],
+  "EKTAR":["Punchy and sharp",["#cf3a2e","#2f5d7c","#dfa53a"]],"B&W":["Black and white",["#1d1b18","#8a867e","#d6d1c4"]]};
+function filmStripes(el,name){const f=FILM_INFO[name];if(!f) return;f[1].forEach((c,i)=>el.style.setProperty("--s"+(i+1),c));}
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:true,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video"};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video"};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
@@ -494,15 +605,13 @@ try{
     if(saved.fpsBy&&FORMATS[f].fps.includes(saved.fpsBy[f])) S.fpsBy[f]=saved.fpsBy[f];
   }
   if(saved.facing==="user") S.facing="user";
-  S.overscan=!!saved.overscan;
+  // Overscan, the grain and colour comparisons, the lens flare and the movement switch have left the screen: the camera always starts
+  // with no film edge, the rebuilt grain, its own colour, no lens flare, and film movement on, whatever an older visit had stored.
   if([0,1,2,3].includes(saved.side)) S.side=saved.side;
   if(saved.filter>=0&&saved.filter<FILTERS.length) S.filter=saved.filter|0;
   if(saved.zoomSpeed) S.zoomSpeed=Math.min(2,Math.max(.4,+saved.zoomSpeed||1));
   if(saved.filmFlare===false) S.burn=false;
   if(saved.lensFlare===false) S.lens=false;
-  if(saved.movement===false) S.move=false;
-  if(saved.colour==="spektrafilm") S.colour=1;
-  if(saved.grainTry===0||saved.grainTry===1) S.grain=saved.grainTry;
   if(saved.sound===false) S.sound=false;
   if(SHAPES[saved.shape]) S.shape=saved.shape;
   if(saved.histo===true) S.histo=true;
@@ -1975,10 +2084,10 @@ function renderClips(){
   }
   $("galleryNote").textContent=clips.length
     ?"Clips and photos stay here only while this page is open. Save the ones you want to keep."
-    :"Nothing here yet. Press the round button to record a clip or take a photo.";
+    :"Nothing here yet. Press Record to film a clip, or switch to Photo.";
   $("clipCount").textContent=clips.length;
   const gb=$("galleryBtn"),face=clips.length?clips[0].poster:"";
-  gb.classList.toggle("has",!!face);gb.style.backgroundImage=face?"url("+face+")":"";
+  gb.classList.toggle("has",!!face);$("rollThumb").style.backgroundImage=face?"url("+face+")":"";
   gb.setAttribute("aria-label",clips.length?"Open clips and photos ("+clips.length+")":"Open clips and photos");
 }
 
@@ -1991,7 +2100,8 @@ function buildStocks(){
     const b=document.createElement("button");b.className="film";b.dataset.v=name;b.setAttribute("aria-label",name+" film");
     const c=document.createElement("canvas");c.width=TH.tw||104;c.height=TH.th||138;
     const t=document.createElement("span");t.className="code";t.textContent=name;
-    b.append(c,t);
+    const d=document.createElement("span");d.className="ds";d.textContent=FILM_INFO[name]?FILM_INFO[name][0]:"";filmStripes(b,name);
+    b.append(c,t,d);
     b.onclick=()=>{if(recording){toast("Stop recording to change film.");return;}S.stockBy[S.format]=name;remember();paint();filmSheet(false);dip();};
     row.append(b);
   }
@@ -2010,7 +2120,9 @@ function showFilmInStrip(smooth){                    // bring the film in use in
 }
 function paint(){
   const isVhs=S.format==="vhs",live=mode==="live";
-  $("stockBtn").textContent=S.stock;$("stockBtn").setAttribute("aria-label","Film in the camera: "+S.stock);
+  $("stockBtn").textContent=S.stock;$("stockBtn").setAttribute("aria-label","Film in the camera: "+S.stock+". Press to change it");
+  filmStripes($("filmLabel"),S.stock);$("filmSub").textContent=FILM_INFO[S.stock]?FILM_INFO[S.stock][0].split(".")[0]:"";
+  $("trigLabel").textContent=recording?"Stop":S.shoot==="photo"?"Photo":"Record";
   const ev=(S.ev>0?"+":S.ev<0?"−":"")+Math.abs(S.ev).toFixed(1),at=((S.ev+3)/6*100)+"%";
   $("evVal").textContent=ev;$("evVal").style.left=at;$("evNeedle").style.left=at;
   $("evTicks").setAttribute("aria-valuenow",S.ev.toFixed(1));$("evTicks").setAttribute("aria-valuetext",ev+" stops");
@@ -2063,6 +2175,7 @@ function filmSheet(on){
   if(on){TH.last=0;showFilmInStrip(false);$("filmClose").focus();}else $("stockBtn").focus();
 }
 $("stockBtn").onclick=()=>filmSheet(true);
+$("filmLabel").onclick=e=>{if(e.target.id!=="stockBtn") filmSheet(true);};   // the whole label is the button
 $("filmClose").onclick=()=>filmSheet(false);
 $("shapeSeg").onclick=e=>{
   const v=e.target.dataset&&e.target.dataset.v;if(!v||v===S.shape) return;
