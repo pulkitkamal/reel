@@ -11,6 +11,7 @@ What it does now:
 - Bottom row: the roll (your clips), flip, photo, video, and the wide record key. On the picture: "lab" at the top left, the dotted circle at the top right is the light.
 - Films open as twelve live tiles, with one plain line saying what the loaded film is good for.
 - Lab and films open inside the board under the picture, so the picture never leaves the screen. Press the film card for a row of live film tiles. Press "lab" for a row of panels to scroll sideways: lens look, star filter (4 or 6 points), then rulers for star strength, diffusion, bloom, halation, grain, dark corners, flicker, wobble, dust and the colour filter, then grid, light leak, sound, old film sound, camera whirr and about. Push a ruler up or down; two taps put it back. 100 is the film's own amount (diffusion and the star filter start off).
+- Saved looks: the first panel in the lab, "save this look", keeps the film, lens look, star filter and every ruler under a number (up to six). One press brings a look back; the cross removes it.
 - Films: the twelve film looks, plus seven of our own with working names: cindra (silver, drained), solane (faded gold), lagra (cross-processed), rosel (pink haze), noctar (blue night), umbrin (brown and white), rubra (loud colour).
 - 1:1 and 4:3 use the camera's whole sensor; 16:9 uses the wide video picture.
 - Photo or Video: a small switch beside the picture shape. In Photo the round button turns white and one tap keeps the frame on screen, film look and all, as a JPEG. Photos sit with the clips and save the same way.

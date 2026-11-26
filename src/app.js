@@ -1207,6 +1207,7 @@ function syncRulers(){
     if(k==="filter"){val.textContent=FILTERS[v][0];val.classList.add("w");el.setAttribute("aria-valuetext",FILTERS[v][0]);el.classList.toggle("zero",v===4);}
     else{val.textContent=String(Math.round(v*100));el.setAttribute("aria-valuenow",Math.round(v*100));el.classList.toggle("zero",v===0);}
   }
+  paintLooks();
 }
 function buildRulers(){
   const box=$("rulers");
@@ -1222,6 +1223,50 @@ function buildRulers(){
       set(k==="filter"?Math.max(0,Math.min(max,S[k]+d)):Math.max(0,Math.min(max,Math.round((S[k]+d*.05)*20)/20)));});
   }
   syncRulers();
+}
+/* ---------- saved looks: film, lens look, star filter and every ruler, kept under a number ---------- */
+let LOOKS=[];
+const LOOKKEYS=["lensLook","star"].concat(RUL.map(r=>r[0]));
+function lookOk(l){
+  if(!l||!FORMATS.s8.stocks.includes(l.stock)||![0,1,2].includes(l.lensLook)||![0,4,6].includes(l.star)) return false;
+  for(const [k,nm,max] of RUL) if(!(typeof l[k]==="number"&&l[k]>=0&&l[k]<=max)||(k==="filter"&&l[k]!==Math.round(l[k]))) return false;
+  return true;
+}
+try{LOOKS=JSON.parse(localStorage.getItem("reel8looks")||"[]").filter(lookOk).slice(0,6);}catch(e){LOOKS=[];}
+function keepLooks(){try{localStorage.setItem("reel8looks",JSON.stringify(LOOKS));}catch(e){}}
+function lookNow(){const o={stock:S.stock};for(const k of LOOKKEYS) o[k]=S[k];return o;}
+function sameLook(l){if(l.stock!==S.stock) return false;for(const k of LOOKKEYS) if(l[k]!==S[k]) return false;return true;}
+function useLook(i){
+  const l=LOOKS[i];if(!l) return;
+  if(recording&&l.stock!==S.stock){toast("Stop recording to change film.");return;}
+  if(S.format!=="s8") return;
+  const film=l.stock!==S.stock;S.stockBy.s8=l.stock;for(const k of LOOKKEYS) S[k]=l[k];
+  $("filterRange").value=S.filter;remember();paint();if(film) dip();toast("Look "+(i+1)+".",1200);
+}
+function paintLooks(){
+  const box=$("looks");if(!box) return;
+  if(box.children.length!==LOOKS.length+1){
+    box.textContent="";
+    const sv=document.createElement("button");sv.className="pn lp sw";sv.id="lookSave";sv.setAttribute("aria-label","Save this look: the film, the lens look, the star filter and every ruler as they are now");
+    sv.innerHTML='<b>+</b><span class="nm">save this look</span>';
+    sv.onclick=()=>{
+      if(LOOKS.some(sameLook)){toast("This look is already saved.");return;}
+      if(LOOKS.length>=6){toast("Six looks are saved. Remove one to save another.");return;}
+      LOOKS.push(lookNow());keepLooks();paintLooks();toast("Saved as look "+LOOKS.length+".");
+    };
+    box.appendChild(sv);
+    LOOKS.forEach((l,i)=>{
+      const d=document.createElement("div");d.className="pn lp lk";d.dataset.i=i;
+      d.innerHTML='<button class="go" aria-label="Use look '+(i+1)+'"><b>'+(i+1)+'</b><span class="nm"></span></button><button class="del" aria-label="Remove look '+(i+1)+'">&times;</button>';
+      d.querySelector(".go").onclick=()=>useLook(i);
+      d.querySelector(".del").onclick=()=>{LOOKS.splice(i,1);keepLooks();paintLooks();toast("Look removed.",1200);};
+      box.appendChild(d);
+    });
+  }
+  LOOKS.forEach((l,i)=>{
+    const d=box.children[i+1];d.setAttribute("aria-pressed",sameLook(l));
+    d.querySelector(".nm").textContent=l.stock.toLowerCase()+(l.lensLook?" · "+LENSLOOK.names[l.lensLook].toLowerCase():"")+(l.star?" · star":"");
+  });
 }
 function syncFaders(){
   const k=S.ev+"|"+S.zoom.toFixed(3)+"|"+(CZ.ok?1:0)+mode;if(k===fadeSeen) return;fadeSeen=k;
@@ -2104,7 +2149,7 @@ if(!FRAMED&&"serviceWorker" in navigator&&(location.protocol==="https:"||locatio
 $("homeNote").hidden=!(IS_IOS&&!STANDALONE&&!FRAMED);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={FX,RUL,labBoard,showBoard,syncRulers,LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
+window.__reel8={FX,RUL,get LOOKS(){return LOOKS;},useLook,labBoard,showBoard,syncRulers,LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
   get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
   blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";card(false);},snap(){return new Promise(r=>{snapCb=r;});},

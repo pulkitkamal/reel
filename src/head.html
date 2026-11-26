@@ -401,6 +401,12 @@ button.pn:active,.pn button:active{background-color:#1f1f1f}
 .lp.seg3 button{display:block;width:100%;height:36px;padding:0 10px;text-align:left;background:none;font-size:14px;font-weight:400;color:var(--dim);text-transform:lowercase}
 .lp.seg3 button[aria-pressed="true"]{color:var(--hi)}
 #cam.labon .labbtn{color:var(--grn)}
+.lk .go{position:absolute;left:0;top:0;width:100%;height:100%;background:none;text-align:left}
+.lk .go b{position:absolute;left:10px;top:11px;font-size:17px;line-height:1;font-weight:400;color:var(--hi)}
+.lk[aria-pressed="true"] .go b{color:var(--grn)}
+.lk .del{position:absolute;right:0;top:0;width:36px;height:38px;background:none;color:var(--dim);font-size:16px;line-height:1}
+.lk .go:active,.lk .del:active{background:#1f1f1f}
+#lookSave>b{color:var(--hi)}
 #zoomHow{position:absolute;right:10px;top:6px;font-size:10.5px;line-height:1;font-weight:300;color:var(--dim);text-transform:lowercase;pointer-events:none}
 :root{--ticks:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 120' preserveAspectRatio='none'%3E%3Cg fill='none' stroke-width='1.5' vector-effect='non-scaling-stroke'%3E%3Cpath stroke='%238a8a8a' vector-effect='non-scaling-stroke' d='M0 .75h14M0 20.5h14M0 40.25h14M0 60h14M0 79.75h14M0 99.5h14M0 119.25h14'/%3E%3Cpath stroke='%23474747' stroke-width='1' vector-effect='non-scaling-stroke' d='M4 10.6h7M4 30.4h7M4 50.1h7M4 69.9h7M4 89.6h7M4 109.4h7'/%3E%3C/g%3E%3C/svg%3E")}
 @media (display-mode:standalone){html,body{height:100vh}}
@@ -482,6 +488,7 @@ input[type=range]{accent-color:var(--grn)}
     </div>
     <div class="board" id="labBoard" hidden aria-label="Lab">
       <div class="lrow" id="labRow">
+        <span id="looks" style="display:contents"></span>
         <div class="pn lp seg3" id="lookSeg" role="group" aria-label="Lens look"><button data-v="0">clean</button><button data-v="1">swirl</button><button data-v="2">anamorphic</button><span class="nm">lens</span></div>
         <div class="pn lp seg3" id="starSeg" role="group" aria-label="Star filter: sparkles on bright lights"><button data-v="0">off</button><button data-v="4">4 point</button><button data-v="6">6 point</button><span class="nm">star</span></div>
         <span id="rulers" style="display:contents"></span>
