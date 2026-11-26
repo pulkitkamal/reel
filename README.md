@@ -6,8 +6,11 @@ Open it on a phone: https://pulkitkamal.github.io/reel/
 
 What it does now:
 
-- The screen is laid out like a cassette recorder. The film in the camera is a paper label at the top (name, what it is for, frames a second) next to a tape counter. Under the picture are two slide switches (picture shape 1:1, 4:3 or 16:9, and Photo or Video). At the bottom are four keys with a word on each: Roll, Record, Flip, More.
-- Films open as a shelf of tapes. Each has a small live picture and one plain line about what it is good for.
+- The screen is black, like a monitor in a dark room, and everything the camera tells you is small glowing type, each reading in its own colour: film in amber, speed in green, brightness in violet, zoom in blue, the clock in white (red while recording).
+- On the picture: a brightness slider up the right edge (big sun, small sun) and a zoom slider along the bottom edge. Tap either twice to put it back. The zoom glides to where you put it.
+- Under the picture: picture shape (1:1, 4:3, 16:9) and Photo or Video as words; the chosen one glows. Then Roll, the round record button, and Flip. More is the three dots at the top right.
+- Films open as twelve live tiles, with one plain line saying what the loaded film is good for.
+- More holds only what is not on the main screen: light, lens, speed, sound, light graph, grid, light leak, film sound, camera whirr and the colour filter.
 - 1:1 and 4:3 use the camera's whole sensor; 16:9 uses the wide video picture.
 - Photo or Video: a small switch beside the picture shape. In Photo the round button turns white and one tap keeps the frame on screen, film look and all, as a JPEG. Photos sit with the clips and save the same way.
 - Small touches: the picture fades in at start-up, blinks softly when the film changes, glides when the shape changes, and the record button pulses.
@@ -42,3 +45,5 @@ Files:
 
 
 Not on the screen any more: the overscan switch, the grain and colour comparisons, the lens flare (off until it is redone) and the film movement switch (always on).
+
+The pixel typefaces are VT323 and Silkscreen (SIL Open Font Licence), built into the page.

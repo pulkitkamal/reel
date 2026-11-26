@@ -845,6 +845,8 @@ function sizeCanvas(aspect){
   if(css!==cvCss){
     cvCss=css;
     for(const el of [cv,picBox]){el.style.width=cw+"px";el.style.height=ch+"px";el.style.left=x+"px";el.style.top=y+"px";}
+    const under=bh0-(y+ch);picBox.style.setProperty("--zb",(under<58?68-under:10)+"px");
+    $("cam").classList.toggle("noline",under<92);                                        // the line of readings needs clear space under the picture     // where the shape keys lie over the picture, the zoom slider sits above them
   }
 }
 function pictureGeom(F){
@@ -1046,8 +1048,43 @@ function posterNow(){                                // a small picture of what 
   try{const b=[...$("strip").children].find(b=>b.dataset.v===S.stock);return b&&TH.drawn?b.firstElementChild.toDataURL("image/jpeg",.85):"";}catch(e){return "";}
 }
 function tick(now){requestAnimationFrame(tick);if(!MV.manual) step(now);}
+/* ---------- the two sliders on the picture ---------- */
+// zoomGoal is where the zoom slider was put; the zoom glides there instead of jumping (a real zoom ring has weight).
+let zoomGoal=null,fadeSeen="";
+function syncFaders(){
+  const k=S.ev+"|"+S.zoom.toFixed(3);if(k===fadeSeen) return;fadeSeen=k;
+  $("briKnob").style.top=((3-S.ev)/6*100)+"%";$("briSl").setAttribute("aria-valuenow",S.ev);
+  $("rlEv").textContent="EV "+(S.ev<0?"−":"+")+Math.abs(S.ev).toFixed(1);$("rlZoom").textContent=S.zoom.toFixed(1)+"×";
+  const zk=$("zoomKnob");zk.style.left=((S.zoom-1)/3*100)+"%";zk.textContent=(Math.abs(S.zoom-Math.round(S.zoom))<.05?Math.round(S.zoom):S.zoom.toFixed(1))+"×";$("zoomSl").setAttribute("aria-valuenow",+S.zoom.toFixed(1));
+}
+function showEvFigure(){const r=$("evRead");r.hidden=S.ev===0;r.textContent=(S.ev>0?"+":"−")+Math.abs(S.ev).toFixed(1);}
+function fader(el,vert,put,home){
+  const track=el.querySelector(".ft"),knob=el.querySelector(".fk");
+  knob.parentNode.removeChild(knob);track.appendChild(knob);          // the cap rides on the slot, so its place is a share of the slot's length
+  let held=false,last=0;
+  const at=e=>{const r=track.getBoundingClientRect();put(Math.max(0,Math.min(1,vert?1-(e.clientY-r.top)/r.height:(e.clientX-r.left)/r.width)));syncFaders();};
+  el.addEventListener("pointerdown",e=>{
+    if(e.button>0) return;e.preventDefault();
+    const now=performance.now();if(now-last<400){last=0;home();syncFaders();return;}last=now;
+    held=true;el.classList.add("held");try{el.setPointerCapture(e.pointerId);}catch(x){}at(e);});
+  el.addEventListener("pointermove",e=>{if(held) at(e);});
+  const up=()=>{if(!held) return;held=false;el.classList.remove("held");paint();};
+  el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up);
+  return at;
+}
+fader($("briSl"),true,f=>{let v=Math.round((f*6-3)*10)/10;if(Math.abs(v)<.15) v=0;if(v!==S.ev){S.ev=v;showEvFigure();}},()=>{S.ev=0;paint();});      // a small notch at normal
+fader($("zoomSl"),false,f=>{let z=1+f*3;const n=Math.round(z);if(Math.abs(z-n)<.07) z=n;zoomGoal=z;$("zoomRead").classList.remove("off");clearTimeout(fader.t);fader.t=setTimeout(()=>{if(!zoomDir)$("zoomRead").classList.add("off");},1100);},
+  ()=>{zoomGoal=1;});
+$("briSl").addEventListener("keydown",e=>{const d=e.key==="ArrowUp"||e.key==="ArrowRight"?.1:e.key==="ArrowDown"||e.key==="ArrowLeft"?-.1:0;if(d){e.preventDefault();S.ev=Math.max(-3,Math.min(3,Math.round((S.ev+d)*10)/10))||0;paint();}});
+$("zoomSl").addEventListener("keydown",e=>{const d=e.key==="ArrowUp"||e.key==="ArrowRight"?.1:e.key==="ArrowDown"||e.key==="ArrowLeft"?-.1:0;if(d){e.preventDefault();zoomGoal=Math.max(1,Math.min(4,(zoomGoal==null?S.zoom:zoomGoal)+d));}});
 function step(now){
   const dt=Math.min(.1,(now-lastTick)/1000);lastTick=now;
+  if(zoomGoal!=null){
+    if(zoomDir||Math.abs(zoomGoal-S.zoom)<.004){if(!zoomDir) S.zoom=zoomGoal;zoomGoal=null;}
+    else S.zoom+=(zoomGoal-S.zoom)*(1-Math.exp(-dt*9));
+    $("zoomRead").textContent=S.zoom.toFixed(1)+"×";
+  }
+  syncFaders();
   if(zoomDir){
     S.zoom=Math.min(4,Math.max(1,S.zoom*Math.exp(zoomDir*S.zoomSpeed*.9*dt)));
     $("zoomRead").textContent=S.zoom.toFixed(1)+"×";
@@ -1420,10 +1457,10 @@ async function beginRec(){
   recording=true;recStart=performance.now();
   if(S.format==="vhs") dyn.glitch=1.2;
   else if(S.burn){const u=Math.random();startFilmFlare(u<.2?1:u<.65?.55:.22);}   // like real rolls: sometimes strong, mostly modest, sometimes barely there
-  $("recLamp").hidden=false;$("recTime").textContent="00:00";
+  $("recLamp").hidden=false;$("recTime").textContent="00:00";$("rlTime").textContent="00:00";
   recTimer=setInterval(()=>{
     const s=Math.floor((performance.now()-recStart)/1000);
-    $("recTime").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+    $("recTime").textContent=$("rlTime").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
   },250);
   paint();
 }
@@ -1586,6 +1623,7 @@ function paint(){
   $("stockBtn").textContent=S.stock;$("stockBtn").setAttribute("aria-label","Film in the camera: "+S.stock+". Press to change it");
   filmStripes($("filmLabel"),S.stock);$("filmSub").textContent=FILM_INFO[S.stock]?FILM_INFO[S.stock][0].split(".")[0]:"";
   $("trigLabel").textContent=recording?"Stop":S.shoot==="photo"?"Photo":"Record";
+  $("filmNote").textContent=S.stock+(FILM_INFO[S.stock]?" — "+FILM_INFO[S.stock][0]:"");
   const ev=(S.ev>0?"+":S.ev<0?"−":"")+Math.abs(S.ev).toFixed(1),at=((S.ev+3)/6*100)+"%";
   $("evVal").textContent=ev;$("evVal").style.left=at;$("evNeedle").style.left=at;
   $("evTicks").setAttribute("aria-valuenow",S.ev.toFixed(1));$("evTicks").setAttribute("aria-valuetext",ev+" stops");
@@ -1763,10 +1801,10 @@ function stepStock(dir){
   const fd=$("finder");let sw=null,two=null;const pts=new Map();
   const gap=()=>{const [a,b]=[...pts.values()];return Math.hypot(a.x-b.x,a.y-b.y)||1;};
   fd.addEventListener("pointerdown",e=>{
-    if(e.button>0||(e.target.closest&&e.target.closest(".card,.chip,.bar,.shape,#evRead"))) return;
+    if(e.button>0||(e.target.closest&&e.target.closest(".card,.chip,.bar,.shape,.fader,#evRead"))) return;
     pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     try{fd.setPointerCapture(e.pointerId);}catch(x){}
-    if(pts.size===2){sw=null;two={d:gap(),z:S.zoom};$("zoomRead").classList.remove("off");return;}   // a second finger: this is a pinch, not a swipe
+    if(pts.size===2){sw=null;zoomGoal=null;two={d:gap(),z:S.zoom};$("zoomRead").classList.remove("off");return;}   // a second finger: this is a pinch, not a swipe
     if(pts.size>2||!e.isPrimary){sw=null;return;}
     sw={id:e.pointerId,x:e.clientX,y:e.clientY,t:e.timeStamp,ev:S.ev,mode:"",h:Math.max(120,cv.getBoundingClientRect().height)};
   });

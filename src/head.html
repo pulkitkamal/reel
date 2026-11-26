@@ -380,6 +380,156 @@ button:active{transform:scale(.93)}
 .rocker button{border-radius:4px;background:linear-gradient(#3b3936,#2a2927 70%,#1f1e1c);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -3px 0 rgba(0,0,0,.35)}
 .rocker button+button{border-left:0}
 .clip{background:#2f2d2a}
+
+/* ================= sliders on the picture =================
+   Brightness runs up the right edge (big sun, small sun); zoom runs along the bottom edge. Each is a fader: a slot with marks and a cap
+   you push. Tap twice to put it back. They sit on the picture, so they are see-through until touched. */
+.fader{position:absolute;border-radius:20px;background:rgba(0,0,0,.42);color:#fff;touch-action:none;-webkit-user-select:none;user-select:none;opacity:.9;transition:opacity .2s,background .2s}
+.fader.held{background:rgba(0,0,0,.62);opacity:1}
+.fader .ft{position:absolute;background:rgba(255,255,255,.5);border-radius:1px}
+.fader .fk{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--lamp);color:#1a0d04;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.35);font-size:12px;font-weight:700;font-stretch:80%;letter-spacing:-.02em;transition:transform .12s}
+.fader.held .fk{transform:scale(1.18)}
+.fader svg,.fader span{position:absolute;pointer-events:none}
+.fader.v{right:8px;top:50%;width:40px;height:min(280px,62%);transform:translateY(-50%)}
+.fader.v .ft{left:19px;top:40px;bottom:36px;width:2px}
+.fader.v .ft::after{content:"";position:absolute;left:-5px;top:50%;width:12px;height:2px;margin-top:-1px;background:#fff}      /* the mark for normal */
+.fader.v .fk{left:1px}
+.fader.v .e1{left:11px;top:10px}.fader.v .e2{left:14px;bottom:11px}
+.fader.h{left:50%;bottom:var(--zb,10px);height:40px;width:min(270px,70%);transform:translateX(-50%)}
+.fader.h .ft{top:19px;left:38px;right:38px;height:2px;
+  background:linear-gradient(90deg,rgba(255,255,255,.5),rgba(255,255,255,.5)) 0 0/100% 2px no-repeat}
+.fader.h .ft::before{content:"";position:absolute;left:0;right:0;top:-4px;height:10px;background:linear-gradient(90deg,#fff 0 2px,transparent 2px) 0 0/33.333% 100%;opacity:.75;margin-right:-2px}  /* a mark at 1, 2, 3 and 4 */
+.fader.h .fk{top:1px}
+.fader.h .e1,.fader.h .e2{top:0;line-height:38px;width:38px;text-align:center;font-size:19px;font-weight:600}
+.fader.h .e1{left:0}.fader.h .e2{right:0}
+#evRead{right:56px;top:50%;margin-top:-15px}
+#cam.carded .fader,#cam.bare .fader{display:none}
+@media (max-height:420px){.fader.v{height:min(200px,58%)}}
+
+/* ================= the glow screen =================
+   Black, like a monitor in a dark room. Nothing is drawn as an object: everything the camera tells you is small glowing type,
+   each kind of reading in its own colour (film amber, speed green, brightness violet, zoom blue, clock white, recording red).
+   What is chosen glows; what is not stays dim. */
+:root{--bodyc:#000;--tray:#000;--lamp:#ffbe55;--gw:#f1eeff;--gv:#c9b8ff;--gg:#6dffb0;--ga:#ffbe55;--gc:#63e6ff;--gr:#ff7a6e;--dim:#6a6599;--line:#2c2850;
+  --sA:0 0 10px rgba(255,170,40,.95),0 0 3px rgba(255,170,40,.8);--sG:0 0 10px rgba(60,255,150,.9),0 0 3px rgba(60,255,150,.8);--sV:0 0 10px rgba(140,100,255,1),0 0 3px rgba(140,100,255,.9);
+  --sC:0 0 10px rgba(60,220,255,.9),0 0 3px rgba(60,220,255,.8);--sW:0 0 10px rgba(200,190,255,.9),0 0 3px rgba(200,190,255,.7);--sR:0 0 12px rgba(255,60,40,1),0 0 3px rgba(255,60,40,.9);
+  --vt:"VT323","Courier New",monospace;--px:"Silkscreen","VT323",monospace}
+#cam,.finder{background:#000}
+/* top line */
+.finder .bar{display:flex;align-items:center;gap:0;height:44px;margin:4px 0 0;padding:0 60px 0 14px;border-radius:0;background:none;box-shadow:none}
+.label{flex:1;height:44px;max-width:none;background:none;box-shadow:none;border-radius:0;overflow:visible;cursor:pointer}
+.label .stripes,.label .chg,#filmSub{display:none}
+#cam #stockBtn{margin:0;font:400 30px/44px var(--vt);letter-spacing:.02em;color:var(--ga);text-shadow:var(--sA);min-width:0}
+.label .sub{margin-left:12px;display:block;overflow:visible}
+#cam #fpsRead{font:400 30px/44px var(--vt);color:var(--gg);text-shadow:var(--sG);opacity:1}
+#fpsWrap{color:var(--gg);text-shadow:var(--sG)}
+#fpsWrap small{font:400 10px/1 var(--px);margin-left:4px;letter-spacing:.04em}
+#cam #recLamp{display:flex !important;flex:none;align-items:center;gap:7px;height:44px;min-width:0;padding:0;background:none;box-shadow:none;font:400 24px/1 var(--vt);letter-spacing:.03em;color:var(--gr);text-shadow:var(--sR)}
+#cam #recLamp[hidden]{display:none !important}
+#cam #recLamp i{display:block;width:9px;height:9px;border-radius:50%;background:#ff4a3d;box-shadow:0 0 8px rgba(255,60,40,.95)}
+/* more: three dots, top right */
+#cam .rkey.morebtn{position:absolute;z-index:3;top:4px;right:6px;width:48px;height:44px;flex:none;background:none;box-shadow:none;border-radius:8px;padding:0;color:var(--gw)}
+#cam .rkey.morebtn::before{display:none}
+#cam .rkey.morebtn .kl{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.rkey .dots{gap:5px;height:auto}.rkey .dots i{width:5px;height:5px;border-radius:0;background:var(--gw);box-shadow:0 0 8px #a58cff}
+#cam .rkey.morebtn:active{transform:none;background:rgba(160,140,255,.16)}
+#cam.carded .rkey.morebtn{visibility:hidden}
+/* the line of readings under the picture */
+#readLine{position:absolute;left:16px;right:16px;bottom:56px;display:flex;justify-content:space-between;align-items:baseline;font:400 24px/1 var(--vt);letter-spacing:.02em;pointer-events:none}
+#rlEv{color:var(--gv);text-shadow:var(--sV)}#rlZoom{color:var(--gc);text-shadow:var(--sC)}#rlTime{color:var(--gw);text-shadow:var(--sW)}
+#cam.rolling #rlTime{color:var(--gr);text-shadow:var(--sR)}
+#cam.noline #readLine,#cam.carded #readLine,#cam.bare #readLine{display:none}
+#cam.bare .rkey.morebtn{display:none}
+/* shape and photo/video: words; the chosen one glows over a line */
+.pills{gap:22px;bottom:6px}
+.shape{gap:14px;padding:0;border-radius:0;background:none;box-shadow:none}
+.shape button,.seg button{min-width:44px;height:40px;padding:0 3px;border-radius:0;background:none;box-shadow:none;font:400 12px/40px var(--px);letter-spacing:.03em;text-transform:uppercase;color:#8d87c4;text-shadow:0 0 3px #000,0 0 6px #000;position:relative}
+.shape button[aria-pressed="true"],.seg button[aria-pressed="true"]{background:none;box-shadow:none;color:var(--gw);text-shadow:var(--sW);font-weight:400}
+.shape button[aria-pressed="true"]::after,.seg button[aria-pressed="true"]::after{content:"";position:absolute;left:3px;right:3px;bottom:7px;height:2px;background:var(--gw);box-shadow:0 0 8px rgba(200,190,255,.9)}
+.shape button:active,.seg button:active,.shape button[aria-pressed="true"]:active{transform:none;background:rgba(160,140,255,.14);box-shadow:none}
+.seg{padding:0;border-radius:0;background:none;box-shadow:none;gap:14px}
+#cam.rolling .shape{opacity:.35}
+/* roll, record, flip */
+#cam .deck{display:flex;align-items:center;justify-content:space-between;gap:0;margin:0;padding:10px 34px 16px;border-radius:0;background:none;box-shadow:none}
+#cam .rkey{flex:none;width:58px;height:58px;border-radius:0;background:none;color:var(--gv);gap:5px;padding:0;box-shadow:inset 0 0 0 1.5px #4a437f;transition:opacity .12s,background .1s}
+#cam .rkey::before{display:none}
+#cam .rkey:active{transform:none;background:rgba(160,140,255,.16);box-shadow:inset 0 0 0 1.5px #7a6fd0}
+.rkey .kl{font:400 9px/1 var(--px);letter-spacing:.05em;text-transform:uppercase;color:#b9aef0}
+.rkey .th{display:none}
+#cam #clipCount{position:static;min-width:0;height:auto;padding:0;background:none;font:400 27px/20px var(--vt);color:var(--gw);text-shadow:var(--sW)}
+#cam .rkey.flipbtn{background:none;color:#cfc6ff}
+#cam .rkey.flipbtn svg{width:24px;height:24px;filter:drop-shadow(0 0 5px rgba(150,120,255,.9))}
+#cam .rkey.trigger,#cam.photo .rkey.trigger{flex:none;width:84px;height:84px;border-radius:50%;background:none;padding:7px;box-shadow:inset 0 0 0 2.5px var(--gw),0 0 16px rgba(150,120,255,.6);transform:none}
+#cam .rkey.trigger>b{width:100%;height:100%;border-radius:50%;background:#ff4a3d;box-shadow:none;transition:transform .15s,border-radius .15s,background .12s}
+#cam .rkey.trigger #trigLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+#cam .rkey.trigger:active>b{transform:scale(.9)}
+#cam .rkey.trigger[aria-pressed="true"]{background:none;padding:7px;transform:none;box-shadow:inset 0 0 0 2.5px var(--gr),0 0 22px rgba(255,60,40,.8)}
+#cam .rkey.trigger[aria-pressed="true"]>b{width:100%;height:100%;border-radius:8px;transform:scale(.5)}
+#cam.photo .rkey.trigger>b{background:var(--gw);box-shadow:none}
+#cam.rolling #galleryBtn,#cam.rolling #flipBtn{opacity:.35}
+#cam .rkey.trigger.pulse>b{animation:none}
+@media (max-height:640px){#cam .deck{padding:6px 30px 10px}#cam .rkey{width:52px;height:52px}#cam .rkey.trigger,#cam.photo .rkey.trigger{width:70px;height:70px;padding:6px}}
+@media (orientation:landscape) and (max-height:540px){
+  #cam{grid-template-columns:minmax(0,1fr) 104px}
+  #cam .deck{flex-direction:column;margin:0;padding:56px 0 14px;gap:0;justify-content:space-around}
+  #cam .rkey{flex:none;width:54px;height:54px}#cam .rkey.trigger,#cam.photo .rkey.trigger{flex:none;width:76px;height:76px}
+  .deck .clipsbtn,.deck .clipsbtn.has,.deck .flipbtn{align-self:center;width:54px;height:54px}
+  #cam .rkey.morebtn{flex:none;width:48px;height:44px;align-self:auto}
+  .finder .bar{padding-right:14px}
+}
+/* sliders: the cap glows */
+.fader .fk{background:var(--gw);color:#14102e;box-shadow:0 0 12px rgba(170,150,255,.9);font:400 17px/1 var(--vt);letter-spacing:0}
+#evRead,#zoomRead{font:400 21px/30px var(--vt);background:rgba(0,0,0,.6)}
+#evRead{color:var(--gv);text-shadow:var(--sV)}#zoomRead{color:var(--gc);text-shadow:var(--sC)}
+/* sheets */
+.sheet{background:#000;border-top:1.5px solid #4a437f;gap:14px}
+.sheet h2{font:400 13px/1 var(--px);letter-spacing:.05em;text-transform:uppercase;color:var(--gv);text-shadow:var(--sV)}
+#filmSheet h2{color:var(--ga);text-shadow:var(--sA)}
+.head button{width:auto;min-width:44px;height:40px;padding:0 4px;border-radius:0;background:none;box-shadow:none;color:var(--gw);text-shadow:var(--sW);font-size:20px}
+.head button:active{background:rgba(160,140,255,.16)}
+.note{color:#8f88c9}
+.filmnote{margin:0;min-height:22px;font:400 21px/1 var(--vt);letter-spacing:.02em;text-transform:uppercase;color:var(--ga);text-shadow:var(--sA)}
+/* films: tiles */
+#filmSheet{padding-right:18px}
+#filmSheet .strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px;padding:2px;border-radius:0;background:none;box-shadow:none;overflow:visible}
+#filmSheet .film{flex-direction:column;align-items:stretch;gap:5px;height:auto;padding:0;border-radius:0;overflow:visible;background:none;color:#8f88c9;text-align:center}
+#filmSheet .film::before,#filmSheet .film[aria-pressed="true"]::after{display:none}
+#filmSheet .film canvas{width:100% !important;height:auto !important;aspect-ratio:1/1;object-fit:cover;border-radius:0;outline:1.5px solid transparent}
+#filmSheet .film .code{width:auto;margin:0;font:400 21px/1 var(--vt);letter-spacing:.02em;color:#8f88c9;text-shadow:none}
+#filmSheet .film .ds{display:none}
+#filmSheet .film[aria-pressed="true"]{background:none;box-shadow:none}
+#filmSheet .film[aria-pressed="true"] canvas{outline-color:var(--ga);box-shadow:0 0 14px rgba(255,170,40,.6)}
+#filmSheet .film[aria-pressed="true"] .code{color:var(--ga);text-shadow:var(--sA)}
+@media (max-height:700px){#filmSheet .film canvas{aspect-ratio:4/3}#filmSheet .strip{gap:8px}}
+@media (orientation:landscape) and (max-height:540px){#filmSheet .strip{grid-template-columns:repeat(6,minmax(0,1fr))}#filmSheet .film canvas{aspect-ratio:4/3}}
+/* more: a name on the left, the choices on the right */
+.sheet .keys{gap:8px;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+.sheet .keys .key{height:58px;border:0;border-radius:0;background:none;box-shadow:inset 0 0 0 1.5px #4a437f;padding:0;gap:6px}
+.sheet .keys .key:active{background:rgba(160,140,255,.16)}
+.sheet .keys .key b{font:400 25px/20px var(--vt);text-transform:uppercase;color:var(--gw);text-shadow:var(--sW)}
+.sheet .keys #lightKey b{color:var(--ga);text-shadow:var(--sA)}.sheet .keys #lensKey b{color:var(--gc);text-shadow:var(--sC)}.sheet .keys #fpsBtn b{color:var(--gg);text-shadow:var(--sG)}
+.sheet .keys .key .lab{font:400 9px/1 var(--px);letter-spacing:.05em;text-transform:uppercase;color:#8f88c9}
+.sheet .field{min-height:50px;border-bottom:1px solid #1d1a3a;align-items:center}
+.sheet .field>span,.sheet .field>label{font:400 11px/1.2 var(--px);letter-spacing:.04em;text-transform:uppercase;color:#a9a2e0;text-shadow:none}
+.sheet .field>span small,.sheet .field>label small{font-family:var(--sans);font-size:12.5px;line-height:1.25;letter-spacing:0;text-transform:none;color:#6f6a9c;margin-top:5px}
+.switch{position:relative;flex:none;width:92px;height:44px;border-radius:0;background:none;box-shadow:none;font:400 25px/44px var(--vt);color:var(--dim)}
+.switch::before,.switch::after{position:absolute;top:0;width:auto;height:44px;border-radius:0;background:none;box-shadow:none;transform:none;transition:none}
+.switch::before{content:"OFF";left:0;color:var(--gw);text-shadow:var(--sW)}
+.switch::after{content:"ON";left:auto;right:4px;color:var(--dim);text-shadow:none}
+.switch[aria-checked="true"]{background:none}
+.switch[aria-checked="true"]::before{color:var(--dim);text-shadow:none}
+.switch[aria-checked="true"]::after{left:auto;color:var(--gw);text-shadow:var(--sW);transform:none}
+.switch:active{background:rgba(160,140,255,.14)}
+#filterOut,#speedOut{font:400 23px/1 var(--vt);text-transform:uppercase;color:var(--ga);text-shadow:var(--sA)}
+.slide .field{border-bottom:0}
+input[type=range]{accent-color:#9a7bff}
+.clip{background:#0c0b18;box-shadow:inset 0 0 0 1px #2c2850}
+.clip .meta{font:400 17px/1.1 var(--vt);text-transform:uppercase;letter-spacing:.02em;color:#a9a2e0}
+.clip .row button,.primary,.second{border-radius:0;background:none;box-shadow:inset 0 0 0 1.5px #4a437f;font:400 21px/1 var(--vt);text-transform:uppercase;letter-spacing:.03em;color:#cfc6ff}
+.primary{color:var(--ga);text-shadow:var(--sA);box-shadow:inset 0 0 0 1.5px rgba(255,190,85,.6)}
+.clip .row button:active,.primary:active,.second:active{background:rgba(160,140,255,.16)}
+@media (max-width:359px){#cam .deck{padding-left:22px;padding-right:22px}.pills{gap:12px}.shape{gap:6px}#readLine{font-size:21px}#cam #stockBtn,#cam #fpsRead{font-size:26px}}
 </style>
 </head>
 <body>
@@ -390,13 +540,16 @@ button:active{transform:scale(.93)}
     <div id="pic">
       <i class="mk a"></i><i class="mk b"></i><i class="mk c"></i><i class="mk d"></i>
       <div class="hist" id="histBox" hidden title="Brightness spread, dark on the left, bright on the right"><canvas id="histo" width="216" height="90" role="img" aria-label="Brightness of the picture: dark on the left, bright on the right"></canvas></div>
-      <button class="num" id="evRead" hidden aria-label="Exposure. Press to set it back to zero"></button>
+      <button class="num" id="evRead" hidden aria-label="Brightness. Press to set it back to normal"></button>
+      <div class="fader v" id="briSl" role="slider" tabindex="0" aria-label="Brightness. Slide up for brighter, down for darker. Tap twice for normal" aria-valuemin="-3" aria-valuemax="3" aria-valuenow="0"><svg class="e1" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg><i class="ft"></i><b class="fk" id="briKnob"><svg class="" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg></b><svg class="e2" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg></div>
+      <div class="fader h" id="zoomSl" role="slider" tabindex="0" aria-label="Zoom. Slide right to come closer. Tap twice for no zoom" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><span class="e1" aria-hidden="true">&minus;</span><i class="ft"></i><b class="fk num" id="zoomKnob">1&times;</b><span class="e2" aria-hidden="true">+</span></div>
     </div>
     <header class="bar" id="bar">
-      <div class="label" id="filmLabel"><i class="stripes" aria-hidden="true"></i><button class="code" id="stockBtn" aria-label="Film in the camera">200T</button><span class="sub"><span id="filmSub">Indoor light</span><span id="fpsWrap"><b class="num" id="fpsRead">18</b> frames a second</span></span><span class="chg" aria-hidden="true">Change &rsaquo;</span></div>
+      <div class="label" id="filmLabel"><i class="stripes" aria-hidden="true"></i><button class="code" id="stockBtn" aria-label="Film in the camera">200T</button><span class="sub"><span id="filmSub">Indoor light</span><span id="fpsWrap"><b class="num" id="fpsRead">18</b><small>FPS</small></span></span><span class="chg" aria-hidden="true">Change &rsaquo;</span></div>
       <div class="rec counter" id="recLamp" hidden><i></i><span class="num" id="recTime">00:00</span></div>
     </header>
     <span class="num off" id="zoomRead">1.0&times;</span>
+    <div id="readLine" aria-hidden="true"><span id="rlEv">EV +0.0</span><span id="rlZoom">1.0&times;</span><span id="rlTime">00:00</span></div>
     <button class="chip" id="srcChip" hidden>Change clip</button>
     <div class="card" id="srcCard" hidden>
       <button class="x" id="cardClose" aria-label="Close" hidden>&times;</button>
@@ -413,7 +566,7 @@ button:active{transform:scale(.93)}
   </main>
 
   <footer class="deck">
-    <button class="rkey clipsbtn" id="galleryBtn" aria-label="Open clips"><i class="th" id="rollThumb" aria-hidden="true"></i><span class="kl">Roll &middot; <b class="num" id="clipCount">0</b></span></button>
+    <button class="rkey clipsbtn" id="galleryBtn" aria-label="Open clips"><i class="th" id="rollThumb" aria-hidden="true"></i><b class="num" id="clipCount">0</b><span class="kl">Roll</span></button>
     <button class="rkey trigger" id="trigger" aria-pressed="false" aria-label="Start recording"><b></b><span class="kl" id="trigLabel">Record</span></button>
     <button class="rkey flipbtn" id="flipBtn" aria-label="Turn to the other camera"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3L19.5 9"/><path d="M19.5 4.5V9H15"/><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3L4.5 15"/><path d="M4.5 19.5V15H9"/></svg><span class="kl">Flip</span></button>
     <button class="rkey morebtn" id="settingsBtn" aria-label="More: light, lens, speed, sound, brightness and settings"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="kl">More</span></button>
@@ -421,7 +574,7 @@ button:active{transform:scale(.93)}
 
   <section class="sheet" id="filmSheet" hidden aria-label="Films">
     <div class="head"><h2>Films</h2><button id="filmClose" aria-label="Close films">&times;</button></div>
-    <p class="note" style="margin:0">Each small picture is live. Tap a film to load it.</p>
+    <p class="filmnote" id="filmNote"></p>
     <div class="strip" id="strip" role="group" aria-label="Film"></div>
   </section>
 
@@ -433,22 +586,11 @@ button:active{transform:scale(.93)}
       <button class="key" id="fpsBtn" aria-label="Frames a second"><b class="num">18</b><span class="lab">speed</span></button>
       <button class="key" id="soundKey" aria-pressed="true"><b class="num">on</b><span class="lab">sound</span></button>
     </div>
-    <div class="field"><span>Brightness<small>Or slide a finger up and down on the picture</small></span></div>
-    <div class="scale" id="evScale">
-      <button id="lockBtn" aria-pressed="false" aria-label="Lock exposure"></button>
-      <div class="ticks" id="evTicks" role="slider" tabindex="0" aria-label="Exposure" aria-valuemin="-3" aria-valuemax="3" aria-valuenow="0"><b class="needle" id="evNeedle"></b><em class="num" id="evVal">0.0</em></div>
-    </div>
-    <div class="field"><span>Zoom<small>Or pinch the picture with two fingers</small></span>
-      <div class="rocker" role="group" aria-label="Zoom"><button id="zoomW" aria-label="Zoom out">W</button><button id="zoomT" aria-label="Zoom in">T</button></div>
-    </div>
     <div class="field"><span id="histLabel">Light graph<small>Shows how dark or bright the picture is</small></span>
       <button class="switch" id="histSwitch" role="switch" aria-checked="false" aria-labelledby="histLabel"></button>
     </div>
     <div class="field"><span id="gridLabel">Grid<small>Lines to help you frame</small></span>
       <button class="switch" id="gridSwitch" role="switch" aria-checked="false" aria-labelledby="gridLabel"></button>
-    </div>
-    <div class="field"><span>Camera<small>Back or selfie side</small></span>
-      <div class="seg" id="facingSeg"><button data-v="environment">Rear</button><button data-v="user">Front</button></div>
     </div>
     <div class="field"><span id="burnLabel">Light leak<small>A flash of orange as each shot starts</small></span>
       <button class="switch" id="burnSwitch" role="switch" aria-checked="true" aria-labelledby="burnLabel"></button>
@@ -460,14 +602,25 @@ button:active{transform:scale(.93)}
       <button class="switch" id="whirrSwitch" role="switch" aria-checked="false" aria-labelledby="whirrLabel"></button>
     </div>
     <div class="slide">
-      <div class="field"><label for="filterRange">Colour filter</label><output id="filterOut" for="filterRange">None</output></div>
+      <div class="field"><label for="filterRange">Colour filter<small>A warm or cool tint over the whole picture</small></label><output id="filterOut" for="filterRange">None</output></div>
       <input type="range" id="filterRange" min="0" max="8" step="1" value="4">
     </div>
+    <div id="retired" hidden>
     <div class="slide">
       <div class="field"><label for="speedRange">W/T zoom speed</label><output id="speedOut" for="speedRange">1.0&times;</output></div>
       <input type="range" id="speedRange" min="0.4" max="2" step="0.1" value="1">
     </div>
-    <div id="retired" hidden>
+    <div class="field"><span>Brightness<small>Or slide a finger up and down on the picture</small></span></div>
+    <div class="scale" id="evScale">
+      <button id="lockBtn" aria-pressed="false" aria-label="Lock exposure"></button>
+      <div class="ticks" id="evTicks" role="slider" tabindex="0" aria-label="Exposure" aria-valuemin="-3" aria-valuemax="3" aria-valuenow="0"><b class="needle" id="evNeedle"></b><em class="num" id="evVal">0.0</em></div>
+    </div>
+    <div class="field"><span>Zoom<small>Or pinch the picture with two fingers</small></span>
+      <div class="rocker" role="group" aria-label="Zoom"><button id="zoomW" aria-label="Zoom out">W</button><button id="zoomT" aria-label="Zoom in">T</button></div>
+    </div>
+    <div class="field"><span>Camera<small>Back or selfie side</small></span>
+      <div class="seg" id="facingSeg"><button data-v="environment">Rear</button><button data-v="user">Front</button></div>
+    </div>
     <div class="field"><span id="grainLabel">Grain to compare</span></div>
     <div class="seg" id="grainSeg" role="group" aria-labelledby="grainLabel"><button data-v="2">New</button><button data-v="0">Now</button><button data-v="1">Before</button></div>
     <p class="note" id="grainNote">Here for now, to help choose. New is the rebuilt grain. Now is the one it replaces. Before is the one you called pretty good.</p>
