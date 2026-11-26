@@ -55,7 +55,7 @@ const FILM_INFO={
   "EKTAR":["Punchy and sharp",["#cf3a2e","#2f5d7c","#dfa53a"]],"B&W":["Black and white",["#1d1b18","#8a867e","#d6d1c4"]]};
 function filmStripes(el,name){const f=FILM_INFO[name];if(!f) return;f[1].forEach((c,i)=>el.style.setProperty("--s"+(i+1),c));}
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video"};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video",lensLook:0};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
@@ -80,12 +80,13 @@ try{
   if(saved.histo===true) S.histo=true;
   if(saved.grid===true) S.grid=true;
   if(saved.shoot==="photo") S.shoot="photo";
+  if(saved.lensLook===1||saved.lensLook===2) S.lensLook=saved.lensLook;
   if(saved.filmSound===false) S.filmSound=false;
   if(saved.whirr===true) S.whirr=true;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot,lensLook:S.lensLook}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -179,6 +180,63 @@ vec4 hot(vec2 q){
 void main(){
   gl_FragColor=(hot(vUv+uPx*vec2(-1.,-1.))+hot(vUv+uPx*vec2(1.,-1.))+hot(vUv+uPx*vec2(-1.,1.))+hot(vUv+uPx*vec2(1.,1.)))*.25;
 }`;
+// 2d. lens look. Two old kinds of glass, drawn on the small picture before the film gets it (so the grain stays on top, as on real film).
+// uLm 1 "swirl": the middle stays sharp; outwards everything smears in a circle round the centre, the edges bulge a little,
+//   colours part slightly at the rim and the corners go dark.
+// uLm 2 "anamorphic": a squeezed cinema lens. Lines bow (more across than up and down), the left and right sides smear upwards,
+//   and every small bright light throws a long thin line sideways. The line keeps nearly no colour of its own.
+const FS_HOT2=COMMON+`uniform sampler2D uTex;uniform vec2 uPx;
+vec4 hot(vec2 q){
+  vec3 c=texture2D(uTex,q).rgb;
+  float mx=max(c.r,max(c.g,c.b)),lum=dot(c,vec3(.299,.587,.114));
+  float h=smoothstep(.80,.97,mx)*smoothstep(.50,.82,lum);
+  return vec4(c*h,h);
+}
+void main(){
+  gl_FragColor=(hot(vUv+uPx*vec2(-1.,-1.))+hot(vUv+uPx*vec2(1.,-1.))+hot(vUv+uPx*vec2(-1.,1.))+hot(vUv+uPx*vec2(1.,1.)))*.25;
+}`;
+const FS_LENS=COMMON+`uniform sampler2D uTex,uS1,uS2,uS3;uniform float uLm,uAmt,uAsp,uStreak;
+vec2 A,B;                                            // A: picture shape; B: turns the centred, round coordinates back into picture coordinates
+vec3 ca(vec2 d,vec2 f){                              // red a hair smaller, blue a hair bigger
+  return vec3(texture2D(uTex,d*(1.-f)*B+.5).r,texture2D(uTex,d*B+.5).g,texture2D(uTex,d*(1.+f)*B+.5).b);
+}
+void main(){
+  A=vec2(uAsp,1.);float Rn=length(A)*.5;B=Rn/A;
+  vec2 d=(vUv-.5)*A/Rn;float r=length(d),r2=r*r;      // r is 1 in the corners
+  vec3 col=vec3(0.);float ws=0.;
+  if(uLm<1.5){
+    float m=pow(clamp((r-.34)/.66,0.,1.),1.5);
+    vec2 p=d*(1.+.054*uAmt*(r2-1.));
+    float f=.0105*uAmt*r2;
+    for(int i=0;i<13;i++){
+      float t=float(i)/6.-1.,a=t*.062*uAmt*m,c=cos(a),sn=sin(a);
+      float rs=1.+(mod(float(i),2.)*2.-1.)*.010*uAmt*m*(1.-abs(t)*.3);
+      float w=1.-.5*abs(t);
+      col+=w*ca(vec2(p.x*c-p.y*sn,p.x*sn+p.y*c)*rs,vec2(f));ws+=w;
+    }
+    col/=ws;
+    col*=pow(max(1.-.42*min(uAmt,1.6)*pow(min(r,1.),2.6),.02),.4545);
+  }else{
+    float ax=abs(vUv.x-.5)*2.,mx=pow(clamp((ax-.45)/.55,0.,1.),1.5);
+    vec2 p=vec2(d.x*(1.+.0765*uAmt*(r2-1.)),d.y*(1.+.027*uAmt*(r2-1.)));
+    vec2 f=vec2(.009*uAmt*ax*ax,0.);
+    float sg=.0146*uAmt*mx/Rn;
+    for(int i=0;i<9;i++){
+      float t=float(i)/4.-1.,w=exp(-2.*t*t);
+      col+=w*ca(p+vec2(0.,t*sg*2.),f);ws+=w;
+    }
+    col/=ws;
+    vec3 st=texture2D(uS1,vUv).rgb*.34+texture2D(uS2,vUv).rgb*.33+texture2D(uS3,vUv).rgb*.33;
+    float big=0.;                                    // how much of the whole picture is burnt out: lamps are small, a white sky is not, and a white sky gets no streaks
+    for(int j=0;j<5;j++)for(int k=0;k<5;k++) big+=dot(texture2D(uS3,vec2(.1+.2*float(k),.1+.2*float(j))).rgb,vec3(.3333));
+    st*=1.-smoothstep(.06,.22,big/25.);
+    st=mix(vec3(dot(st,vec3(.3333))),st,.25);
+    col+=st*uStreak;
+    col*=pow(max(1.-.30*uAmt*pow(min(r,1.),2.4),.02),.4545);
+  }
+  gl_FragColor=vec4(col,1.);
+}`;
+const LENSLOOK={names:["Clean","Swirl","Anamorphic"],swirl:1.3,ana:1,streak:3.4,bloom:1.5};
 // how bright the scene is as a whole (8 x 8 samples)
 const FS_LUM=COMMON+`uniform sampler2D uTex;
 void main(){
@@ -934,15 +992,32 @@ function develop(now){
   }else{
     const st=FILM_STOCKS[S.stock],lt=lutFor(S.stock);
     // pass 2: soften the picture (real small-gauge film is far softer than a phone)
+    let Ps=Pt;                                         // the picture the film gets: straight from the camera, or through one of the old lenses
+    if(S.lensLook){
+      if(!PR.lens){PR.lens=makeProg(FS_LENS);PR.hot2=makeProg(FS_HOT2);}
+      if(PR.lens&&PR.hot2){
+        const PL=target("PL",pw,ph);                  // made before any texture is put on units 1 to 3: making one leaves it on the unit in use
+        if(S.lensLook===2){
+          const sw=Math.max(16,pw>>2),sh=Math.max(16,ph>>1),H=target("SH",sw,sh),S1=target("S1",sw,sh),S2=target("S2",sw,sh),S3=target("S3",sw,sh);
+          bind(0,Pt.tex);use(PR.hot2,{uTex:{tex:0},uPx:[1/pw,1/ph]});draw(H);
+          bind(0,H.tex);use(PR.blur,{uTex:{tex:0},uDir:[.025/1.75,0],uThr:0});draw(S1);
+          bind(0,S1.tex);use(PR.blur,{uTex:{tex:0},uDir:[.07/1.75,0],uThr:0});draw(S2);
+          bind(0,S2.tex);use(PR.blur,{uTex:{tex:0},uDir:[.19/1.75,0],uThr:0});draw(S3);
+          bind(1,S1.tex);bind(2,S2.tex);bind(3,S3.tex);
+        }else{bind(1,noiseTex);bind(2,noiseTex);bind(3,noiseTex);}
+        bind(0,Pt.tex);use(PR.lens,{uTex:{tex:0},uS1:{tex:1},uS2:{tex:2},uS3:{tex:3},uLm:S.lensLook,uAmt:S.lensLook===1?LENSLOOK.swirl:LENSLOOK.ana,uAsp:pw/ph,uStreak:S.lensLook===2?LENSLOOK.streak:0});draw(PL);
+        Ps=PL;
+      }
+    }
     const T1=target("T1",pw,ph),PB=target("PB",pw,ph),so=F.soft*pw/600;
-    bind(0,Pt.tex);use(PR.blur,{uTex:{tex:0},uDir:[so/pw,0],uThr:0});draw(T1);
+    bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[so/pw,0],uThr:0});draw(T1);
     bind(0,T1.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,so/ph],uThr:0});draw(PB);
     // pass 3: glow from the bright parts only (red fringe on bright edges)
     const gw=Math.max(16,pw>>1),gh=Math.max(16,ph>>1),A=target("GA",gw,gh),B=target("GB",gw,gh),hs=F.halo*gw/300;
-    bind(0,Pt.tex);use(PR.blur,{uTex:{tex:0},uDir:[hs/gw,0],uThr:.38});draw(A);
+    bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[hs/gw,0],uThr:.38});draw(A);
     bind(0,A.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,hs/gh],uThr:0});draw(B);
     // pass 4: lens flare from the lamps and the sun in the picture
-    const hasFl=S.lens&&LF.ok&&lensFlarePass(Pt,pw,ph,F.pShort);
+    const hasFl=S.lens&&LF.ok&&lensFlarePass(Ps,pw,ph,F.pShort);
     // film movement, flare and damage that carry from frame to frame
     dyn.breath+=(R()-.5)*.006;dyn.breath*=.94;
     rollDamage(F.dmg);rollFilmFlare();
@@ -954,7 +1029,7 @@ function develop(now){
       uWeave:[((R()-.5)*.0012+Math.sin(now/1100)*.0006)*wv,((R()-.5)*.0014+Math.sin(now/700)*.0008)*wv],
       uOff1:off1,uOff2:off2,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uBlack:st.black,uWhite:st.white,
       uSeed:seed,uEv:S.ev,uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uVexp:F.vexp,uGrain:st.grain*F.grainMul,uGs:GM.gs*gpx,
-      uHal:st.hal*LOOK.hal,uBloom:st.bloom*LOOK.bloom,uLift:st.bw?LOOK.lift*.6:LOOK.lift,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1),
+      uHal:st.hal*LOOK.hal,uBloom:st.bloom*LOOK.bloom*(S.lensLook===1&&Ps!==Pt?LENSLOOK.bloom:1),uLift:st.bw?LOOK.lift*.6:LOOK.lift,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1),
       uOver:S.overscan?1:0,uSide:S.overscan?S.side:0,uFmt:S.format==="s16"?1:0,uVig:F.vig,uCa:F.ca,uCorner:F.corner,
       uT:geo.t,uE:geo.e};
     // The small previews are drawn first. Reading them back makes the page wait for the graphics chip, and at this point it has only small jobs queued.
@@ -1628,6 +1703,7 @@ function paint(){
   $("stockBtn").textContent=S.stock;$("stockBtn").setAttribute("aria-label","Film in the camera: "+S.stock+". Press to change it");
   filmStripes($("filmLabel"),S.stock);$("filmSub").textContent=FILM_INFO[S.stock]?FILM_INFO[S.stock][0].split(".")[0]:"";
   $("trigLabel").textContent=recording?"Stop":S.shoot==="photo"?"Photo":"Record";
+  for(const b of $("lookSeg").children) b.setAttribute("aria-pressed",+b.dataset.v===S.lensLook);
   $("filmNote").textContent=S.stock+(FILM_INFO[S.stock]?" — "+FILM_INFO[S.stock][0]:"");
   const ev=(S.ev>0?"+":S.ev<0?"−":"")+Math.abs(S.ev).toFixed(1),at=((S.ev+3)/6*100)+"%";
   $("evVal").textContent=ev;$("evVal").style.left=at;$("evNeedle").style.left=at;
@@ -1680,6 +1756,7 @@ function filmSheet(on){
   $("filmSheet").hidden=!on;
   if(on){TH.last=0;showFilmInStrip(false);$("filmClose").focus();}else $("stockBtn").focus();
 }
+$("lookSeg").onclick=e=>{const v=e.target.dataset&&e.target.dataset.v;if(v==null||+v===S.lensLook) return;S.lensLook=+v;remember();paint();};
 $("stockBtn").onclick=()=>filmSheet(true);
 $("filmLabel").onclick=e=>{if(e.target.id!=="stockBtn") filmSheet(true);};   // the whole label is the button
 $("filmClose").onclick=()=>filmSheet(false);

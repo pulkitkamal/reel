@@ -523,6 +523,7 @@ button:active{transform:scale(.93)}
 .switch:active{background:rgba(160,140,255,.14)}
 #filterOut,#speedOut{font:400 23px/1 var(--vt);text-transform:uppercase;color:var(--ga);text-shadow:var(--sA)}
 .slide .field{border-bottom:0}
+.sheet .field.look{flex:none;flex-wrap:wrap;row-gap:2px;padding:10px 0 6px}.sheet .field.look>span{flex:1 0 100%}.sheet .field.look .seg{margin-left:-3px}
 input[type=range]{accent-color:#9a7bff}
 .clip{background:#0c0b18;box-shadow:inset 0 0 0 1px #2c2850}
 .clip .meta{font:400 17px/1.1 var(--vt);text-transform:uppercase;letter-spacing:.02em;color:#a9a2e0}
@@ -585,6 +586,9 @@ input[type=range]{accent-color:#9a7bff}
       <button class="key" id="lensKey"><b class="num">1&times;</b><span class="lab">lens</span></button>
       <button class="key" id="fpsBtn" aria-label="Frames a second"><b class="num">18</b><span class="lab">speed</span></button>
       <button class="key" id="soundKey" aria-pressed="true"><b class="num">on</b><span class="lab">sound</span></button>
+    </div>
+    <div class="field look"><span>Lens look<small>Old glass: a swirl at the edges, or a cinema lens with light streaks</small></span>
+      <div class="seg" id="lookSeg" role="group" aria-label="Lens look"><button data-v="0">Clean</button><button data-v="1">Swirl</button><button data-v="2">Anamorphic</button></div>
     </div>
     <div class="field"><span id="histLabel">Light graph<small>Shows how dark or bright the picture is</small></span>
       <button class="switch" id="histSwitch" role="switch" aria-checked="false" aria-labelledby="histLabel"></button>

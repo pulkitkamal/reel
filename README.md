@@ -49,3 +49,5 @@ Not on the screen any more: the overscan switch, the grain and colour comparison
 The pixel typefaces are VT323 and Silkscreen (SIL Open Font Licence), built into the page.
 
 Zoom uses the phone's own zoom wherever the browser offers it, so a zoomed picture stays sharp; anything the phone cannot do is made up by enlarging the picture. The last line in More says which is in use. Adding `?camzoom=0` to the address switches the phone's zoom off, for comparing.
+
+Lens look (in More): Clean, Swirl or Anamorphic. Swirl keeps the middle sharp and smears the edges in a circle round the centre, with a glow, a slight bulge and dark corners. Anamorphic bows straight lines a little, softens the left and right sides, and makes every small bright light throw a long, nearly colourless line sideways. Both are drawn before the film look, so the grain stays on top. They work on the edges of the picture; they cannot blur a background behind a subject.
