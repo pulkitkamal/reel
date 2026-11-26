@@ -1167,30 +1167,35 @@ function camFrame(now,meta){
 if(MV.ok) video.requestVideoFrameCallback(onVideoFrame);
 
 /* ---------- zoom ---------- */
-// Zoom enlarges the middle of the camera's picture (the cleaning in the picture shader keeps the camera's noise from growing with it).
-// A test, off unless the page address ends in ?camzoom=1: use the phone's own zoom instead, where the browser offers it.
-const CAMZOOM=/[?&]camzoom=1(&|$)/.test(location.search);
-const CZ={ok:false,min:1,max:1,sent:1,base:1,busy:false};
+// Zoom uses the phone's own zoom wherever the browser offers it: the camera then looks closer with its real lenses and its whole sensor,
+// so the picture stays sharp. Whatever the phone cannot do (no zoom offered, or past its limit) is done by enlarging the middle of the
+// picture, as before. The phone's zoom is counted from where the camera stood when it opened ("home"), which on some phones is not 1.
+// Adding ?camzoom=0 to the address turns the phone's zoom off, for comparing.
+const CAMZOOM=!/[?&]camzoom=0(&|$)/.test(location.search);
+const CZ={ok:false,min:1,max:1,home:1,sent:1,busy:false};
 function initCamZoom(){
-  CZ.ok=false;CZ.sent=1;CZ.base=1;CZ.busy=false;
+  CZ.ok=false;CZ.home=1;CZ.sent=1;CZ.busy=false;
   if(CAMZOOM) try{
     const tr=liveStream&&liveStream.getVideoTracks()[0],c=tr&&tr.getCapabilities?tr.getCapabilities():null;
-    if(c&&c.zoom&&c.zoom.max>=1.5){CZ.ok=true;CZ.min=Math.max(1,c.zoom.min||1);CZ.max=c.zoom.max;}
+    if(c&&c.zoom&&c.zoom.max>0){
+      const st=tr.getSettings?tr.getSettings():{},min=c.zoom.min>0?c.zoom.min:1;
+      const home=st.zoom>0?st.zoom:min;
+      if(c.zoom.max/home>=1.5){CZ.ok=true;CZ.min=min;CZ.max=c.zoom.max;CZ.home=home;CZ.sent=home;}
+    }
   }catch(e){}
   paintStatus();
 }
-function cropZoom(){
+function cropZoom(){                                   // how much the picture itself still has to be enlarged
   if(mode!=="live") return S.zoom;
-  if(CZ.ok) return S.zoom>CZ.max?S.zoom/CZ.max:1;
-  return Math.max(1,S.zoom/CZ.base);                 // base is 1, unless the phone's zoom failed part-way and is stuck where it was
+  return Math.max(1,S.zoom/(CZ.sent/CZ.home));          // if the phone's zoom failed part-way it stays where it was, and this makes up the rest
 }
 function pushCamZoom(){
   if(!CZ.ok||mode!=="live"||CZ.busy) return;
-  const want=Math.min(CZ.max,Math.max(CZ.min,S.zoom));
-  if(Math.abs(want-CZ.sent)<.012) return;
+  const want=Math.min(CZ.max,Math.max(CZ.home,CZ.home*S.zoom));
+  if(Math.abs(want-CZ.sent)<.012*CZ.home) return;
   const tr=liveStream&&liveStream.getVideoTracks()[0];if(!tr) return;
   CZ.busy=true;
-  tr.applyConstraints({advanced:[{zoom:want}]}).then(()=>{CZ.sent=want;CZ.busy=false;},()=>{CZ.ok=false;CZ.base=CZ.sent;CZ.busy=false;paintStatus();});
+  tr.applyConstraints({advanced:[{zoom:want}]}).then(()=>{CZ.sent=want;CZ.busy=false;},()=>{CZ.ok=false;CZ.busy=false;paintStatus();});
 }
 function paintStatus(){
   const el=$("camStatus");if(!el) return;
@@ -1204,7 +1209,7 @@ function paintStatus(){
   else if(!MV.ok||(MV.count===0&&performance.now()-MV.t0>4000)) a="Film movement: not in step. This browser does not report the camera's pictures, so it works the plain way.";
   else if(MV.rate>0) a="Film movement: not in step. The camera gives about "+Math.round(MV.rate)+" pictures a second, which does not fit "+S.fps+" film frames, so it works the plain way.";
   else a="Film movement: measuring the camera.";
-  if(CAMZOOM&&mode==="live") a+=CZ.ok?" Zoom test: using the phone's own zoom.":" Zoom test: this browser does not offer the phone's own zoom.";
+  if(mode==="live") a+=CZ.ok?" Zoom: the phone's own zoom, so it stays sharp.":" Zoom: enlarging the picture"+(CAMZOOM?" (this browser does not offer the phone's own zoom).":" (the phone's own zoom is switched off).");
   if(el.textContent!==a) el.textContent=a;
 }
 

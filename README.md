@@ -47,3 +47,5 @@ Files:
 Not on the screen any more: the overscan switch, the grain and colour comparisons, the lens flare (off until it is redone) and the film movement switch (always on).
 
 The pixel typefaces are VT323 and Silkscreen (SIL Open Font Licence), built into the page.
+
+Zoom uses the phone's own zoom wherever the browser offers it, so a zoomed picture stays sharp; anything the phone cannot do is made up by enlarging the picture. The last line in More says which is in use. Adding `?camzoom=0` to the address switches the phone's zoom off, for comparing.
