@@ -8,9 +8,10 @@ What it does now:
 
 - The screen is the picture on top and a board of flat dark panels under it, in small lowercase type. Grey is what is there, near-white is what is chosen, green is a value you set, red is recording only.
 - Panels: picture shape (1:1, 4:3, 16:9); a zoom ruler (push sideways); the film in the camera (press for the list, push sideways for the next film); the clock and film speed (press the speed to change it); a live light graph in three colours; a brightness scale (push up or down, press the figure for normal). One tap on a ruler does nothing, so a stray touch cannot change it; two taps put it back.
-- Bottom row: the roll (your clips), flip, photo, video, and the wide record key. On the picture: "lab" at the top left opens the settings, the dotted circle at the top right is the light.
+- Bottom row: the roll (your clips), flip, photo, video, and the wide record key. On the picture: "lab" at the top left, the dotted circle at the top right is the light.
 - Films open as twelve live tiles, with one plain line saying what the loaded film is good for.
-- Lab holds what is not on the main screen: light, lens, speed, sound, lens look, grid, light leak, film sound, camera whirr, grain strength, halation strength and the colour filter. Grain and halation go from 0 to 100; 100 is the film's own amount.
+- Lab and films open inside the board under the picture, so the picture never leaves the screen. Press the film card for a row of live film tiles. Press "lab" for a row of panels to scroll sideways: lens look, star filter (4 or 6 points), then rulers for star strength, diffusion, bloom, halation, grain, dark corners, flicker, wobble, dust and the colour filter, then grid, light leak, sound, old film sound, camera whirr and about. Push a ruler up or down; two taps put it back. 100 is the film's own amount (diffusion and the star filter start off).
+- Films: the twelve film looks, plus seven of our own with working names: cindra (silver, drained), solane (faded gold), lagra (cross-processed), rosel (pink haze), noctar (blue night), umbrin (brown and white), rubra (loud colour).
 - 1:1 and 4:3 use the camera's whole sensor; 16:9 uses the wide video picture.
 - Photo or Video: a small switch beside the picture shape. In Photo the round button turns white and one tap keeps the frame on screen, film look and all, as a JPEG. Photos sit with the clips and save the same way.
 - Small touches: the picture fades in at start-up, blinks softly when the film changes, glides when the shape changes, and the record button pulses.
@@ -48,6 +49,6 @@ Not on the screen any more: the overscan switch, the grain and colour comparison
 
 The typeface is Outfit (SIL Open Font Licence), built into the page. VT323 and Silkscreen from the earlier screen are still in the file.
 
-Zoom uses the phone's own zoom wherever the browser offers it, so a zoomed picture stays sharp; anything the phone cannot do is made up by enlarging the picture. The last line in Lab says which is in use. Adding `?camzoom=0` to the address switches the phone's zoom off, for comparing.
+Zoom uses the phone's own zoom wherever the browser offers it, so a zoomed picture stays sharp; anything the phone cannot do is made up by enlarging the picture. The last line in About says which is in use. Adding `?camzoom=0` to the address switches the phone's zoom off, for comparing.
 
-Lens look (in Lab): Clean, Swirl or Anamorphic. Swirl keeps the middle sharp and smears the edges in a circle round the centre, with a glow, a slight bulge and dark corners. Anamorphic bows straight lines a little, softens the left and right sides, and makes every small bright light throw a long, nearly colourless line sideways. Both are drawn before the film look, so the grain stays on top. They work on the edges of the picture; they cannot blur a background behind a subject.
+Lens look (in the lab): Clean, Swirl or Anamorphic. Swirl keeps the middle sharp and smears the edges in a circle round the centre, with a glow, a slight bulge and dark corners. Anamorphic bows straight lines a little, softens the left and right sides, and makes every small bright light throw a long, nearly colourless line sideways. Both are drawn before the film look, so the grain stays on top. They work on the edges of the picture; they cannot blur a background behind a subject.

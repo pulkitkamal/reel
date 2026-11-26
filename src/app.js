@@ -14,6 +14,17 @@ const FILM_STOCKS={
   "500T":{wb:[0.75,1.00,1.70],sat:1.10,k:3.56,gain:1.093,off:.16,gam:[.61,.70,.87],sh:.3,kc:[1,1,1],hd:.5,black:[.012,.010,.041],white:[.955,.930,.820],grain:.56,hal:5.5,bloom:.15,bw:0,dust:1},
   "B&W": {wb:[1.00,1.00,1.00],sat:0.00,k:5.6,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1],hd:0,black:[.028,.028,.028],white:[.940,.940,.940],grain:.53,hal:3.0,bloom:.10,bw:1,dust:1}
 };
+// Looks of our own: not copies of any film that was sold, each with one strong character. (Working names.)
+Object.assign(FILM_STOCKS,{
+  "CINDRA":{wb:[1.00,1.00,1.00],sat:0.42,k:7.4,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1],hd:.6,black:[.012,.013,.016],white:[.955,.955,.945],grain:.60,hal:2.4,bloom:.08,bw:0,dust:1},
+  "SOLANE":{wb:[1.12,1.00,0.78],sat:0.92,k:4.1,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,.98,.92],hd:.4,black:[.085,.060,.034],white:[.955,.900,.770],grain:.50,hal:5.2,bloom:.17,bw:0,dust:1},
+  "LAGRA": {wb:[0.96,1.05,0.94],sat:1.38,k:6.3,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1.14,1.0,.80],hd:.3,black:[.010,.042,.066],white:[.975,.950,.700],grain:.46,hal:3.4,bloom:.10,bw:0,dust:1},
+  "ROSEL": {wb:[1.07,0.96,1.03],sat:0.80,k:3.5,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1],hd:.45,black:[.090,.062,.080],white:[.965,.900,.925],grain:.55,hal:4.4,bloom:.15,bw:0,dust:1},
+  "NOCTAR":{wb:[0.80,0.98,1.28],sat:1.02,k:5.3,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1.05],hd:.4,black:[.010,.020,.052],white:[.860,.925,.975],grain:.60,hal:6.6,bloom:.20,bw:0,dust:1},
+  "UMBRIN":{wb:[1.00,1.00,1.00],sat:0.00,k:5.2,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1],hd:0,black:[.040,.040,.040],white:[.950,.950,.950],grain:.55,hal:3.0,bloom:.11,bw:1,tone:[1,.86,.64],dust:1},
+  "RUBRA": {wb:[1.03,1.00,0.98],sat:1.62,k:6.5,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1.05,1,1.05],hd:.25,black:[.020,.020,.026],white:[.955,.935,.905],grain:.40,hal:3.2,bloom:.09,bw:0,dust:1}
+});
+const TONE0=[1,.99,.955];                             // black and white film is a hair warm; a toned film sets its own
 const TAPES={
   "SP":  {soft:1.0,noise:.050,wear:0.00,sat:.92},
   "EP":  {soft:1.5,noise:.085,wear:0.22,sat:.84},
@@ -31,7 +42,7 @@ const LOOK={hal:2,bloom:3.5,lift:.05};
 // Picture shapes. The long side follows the way the phone is held: 4:3 is upright 3:4 on an upright phone.
 const SHAPES={"1:1":1,"4:3":4/3,"16:9":16/9};
 const FORMATS={
-  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","400H","P400","GOLD","EKTAR","B&W"],pShort:380,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.75,halo:2.1,dsz:1.0,dmg:1.0},
+  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","400H","P400","GOLD","EKTAR","B&W","CINDRA","SOLANE","LAGRA","ROSEL","NOCTAR","UMBRIN","RUBRA"],pShort:380,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.75,halo:2.1,dsz:1.0,dmg:1.0},
   s16:{name:"SUPER 16",aspect:5/3,fps:[24,25],stocks:Object.keys(FILM_STOCKS),pShort:880,gs:.9,grainMul:.6,weave:.32,vig:.24,vexp:1.25,ca:.0014,corner:.012,strip:.13,edge:.030,soft:.55,halo:1.0,dsz:.65,dmg:.6},
   vhs:{name:"VHS",     aspect:4/3,fps:[25,30],stocks:Object.keys(TAPES),      pShort:480}
 };
@@ -52,10 +63,14 @@ const FILM_INFO={
   "500T":["Night. Grainy and moody",["#2f5d7c","#1d3348","#cf3a2e"]],"K64":["Old home movies. Deep reds",["#cf3a2e","#dfa53a","#1d1b18"]],
   "VELVIA":["Very vivid. Landscapes",["#2f7d4f","#cf3a2e","#5b3a8a"]],"400H":["Pastel. Soft greens",["#8fc0a9","#f1c6c0","#dfe6c8"]],
   "P400":["Kind to skin. Gentle",["#e8b9a0","#dfa53a","#8a6a55"]],"GOLD":["Warm holiday snaps",["#dfa53a","#e5642b","#7a4a1e"]],
-  "EKTAR":["Punchy and sharp",["#cf3a2e","#2f5d7c","#dfa53a"]],"B&W":["Black and white",["#1d1b18","#8a867e","#d6d1c4"]]};
+  "EKTAR":["Punchy and sharp",["#cf3a2e","#2f5d7c","#dfa53a"]],"B&W":["Black and white",["#1d1b18","#8a867e","#d6d1c4"]],
+  "CINDRA":["Silver and hard. Drained colour",["#3a3d40","#8a8d90","#d9dadb"]],"SOLANE":["Seventies sun. Faded and golden",["#e0a040","#c9773a","#7a5a30"]],
+  "LAGRA":["Cross-processed. Teal and yellow",["#1f8f8a","#e6d04a","#16454f"]],"ROSEL":["Pink haze. Soft and expired",["#e8b0c0","#d9c0b0","#8a6a78"]],
+  "NOCTAR":["Blue night. Glowing lights",["#16305f","#3f6fb0","#e8c070"]],"UMBRIN":["Brown and white. Old album",["#3a2a1a","#9a7a55","#e8d8b8"]],
+  "RUBRA":["Loud colour. Deep reds and blues",["#c8202a","#1f4fa8","#e8b830"]]};
 function filmStripes(el,name){const f=FILM_INFO[name];if(!f) return;f[1].forEach((c,i)=>el.style.setProperty("--s"+(i+1),c));}
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video",lensLook:0,grainAmt:1,halAmt:1};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video",lensLook:0,grainAmt:1,halAmt:1,bloomAmt:1,vigAmt:1,breathAmt:1,weaveAmt:1,dmgAmt:1,diffAmt:0,star:0,starAmt:1};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
@@ -83,13 +98,16 @@ try{
   if(saved.lensLook===1||saved.lensLook===2) S.lensLook=saved.lensLook;
   if(saved.grainAmt>=0&&saved.grainAmt<=1) S.grainAmt=saved.grainAmt;
   if(saved.halAmt>=0&&saved.halAmt<=1) S.halAmt=saved.halAmt;
+  for(const k of ["bloomAmt","vigAmt","breathAmt","weaveAmt","dmgAmt","starAmt"]) if(saved[k]>=0&&saved[k]<=2) S[k]=saved[k];
+  if(saved.diffAmt>=0&&saved.diffAmt<=1) S.diffAmt=saved.diffAmt;
+  if(saved.star===4||saved.star===6) S.star=saved.star;
   S.histo=true;                                        // the light graph has its own panel now and is always drawn
   if(saved.filmSound===false) S.filmSound=false;
   if(saved.whirr===true) S.whirr=true;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot,lensLook:S.lensLook,grainAmt:S.grainAmt,halAmt:S.halAmt}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot,lensLook:S.lensLook,grainAmt:S.grainAmt,halAmt:S.halAmt,bloomAmt:S.bloomAmt,vigAmt:S.vigAmt,breathAmt:S.breathAmt,weaveAmt:S.weaveAmt,dmgAmt:S.dmgAmt,diffAmt:S.diffAmt,star:S.star,starAmt:S.starAmt}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -198,6 +216,25 @@ vec4 hot(vec2 q){
 void main(){
   gl_FragColor=(hot(vUv+uPx*vec2(-1.,-1.))+hot(vUv+uPx*vec2(1.,-1.))+hot(vUv+uPx*vec2(-1.,1.))+hot(vUv+uPx*vec2(1.,1.)))*.25;
 }`;
+const FS_FX=COMMON+`uniform sampler2D uTex,uDiff,uRays,uHot;uniform float uDf,uSt;
+void main(){
+  vec3 c=texture2D(uTex,vUv).rgb;
+  if(uDf>0.){                                        // a mist filter: light spreads softly out of the bright parts, and the darks lift a little
+    vec3 b=texture2D(uDiff,vUv).rgb;
+    c=mix(c,1.-(1.-c)*(1.-b*.8),uDf);
+    c=mix(c,b,uDf*.22);
+  }
+  if(uSt>0.){                                        // a star filter: thin rays out of each small bright light
+    vec3 r=texture2D(uRays,vUv).rgb;
+    float big=0.;                                    // a burnt-out sky is not a lamp and gets no rays
+    for(int j=0;j<5;j++)for(int k=0;k<5;k++) big+=texture2D(uHot,vec2(.1+.2*float(k),.1+.2*float(j))).a;
+    r*=1.-smoothstep(.10,.30,big/25.);
+    r=mix(vec3(dot(r,vec3(.3333))),r,.45);
+    c+=r*uSt;
+  }
+  gl_FragColor=vec4(c,1.);
+}`;
+const FX={len:[.005,.016,.052],gain:3.2,ang:{4:[.35,1.9208],6:[.2618,1.309,2.3562]}};   // ray lengths (three blurs, each longer), strength, and the angles of the rays
 const FS_LENS=COMMON+`uniform sampler2D uTex,uS1,uS2,uS3;uniform float uLm,uAmt,uAsp,uStreak;
 vec2 A,B;                                            // A: picture shape; B: turns the centred, round coordinates back into picture coordinates
 vec3 ca(vec2 d,vec2 f){                              // red a hair smaller, blue a hair bigger
@@ -300,7 +337,7 @@ const FS_FILM=COMMON+`uniform sampler2D uP,uGlow,uNoise,uDustTex,uFlare;
 uniform vec4 uDp[4],uDq[4],uSc[6],uSd[6],uLk,uLk2;
 uniform vec3 uLkWb;
 uniform vec2 uOut,uWeave,uOff1,uOff2;
-uniform vec3 uWb,uBlack,uWhite,uGam,uKc;uniform sampler2D uLut,uGrainTex;uniform float uLutOn,uLift,uGm,uGk,uGrho,uGskew;uniform vec4 uGrot;uniform vec2 uJit;
+uniform vec3 uWb,uBlack,uWhite,uGam,uKc,uTone;uniform sampler2D uLut,uGrainTex;uniform float uLutOn,uLift,uGm,uGk,uGrho,uGskew;uniform vec4 uGrot;uniform vec2 uJit;
 uniform float uSeed,uEv,uSat,uK,uGrain,uGs,uHal,uBloom,uBw,uFlicker,uOver,uSide,uFmt,uVig,uCa,uCorner,uT,uE,uFl,uFlash,uDsz,uGain,uOff,uSh,uHd,uVexp;
 // second colour choice: look the colour up in a table (33 steps a side, laid out as 33 tiles in a row, one for each step of blue)
 vec3 lut3(vec3 c){
@@ -405,7 +442,7 @@ void main(){
   g=uBlack+g*(uWhite-uBlack);
   if(uLutOn>.5){g=lut3(pow(clamp(cl,0.,1.),vec3(1./2.2)));le=dot(g,vec3(.299,.587,.114));}
   g=uLift+g*(1.-uLift);le=uLift+le*(1.-uLift);          // lifted blacks: film shown on a screen never reaches true black   // the table takes the picture as the camera gave it and returns the film's colour
-  if(uBw>.5)g=vec3(dot(g,vec3(.299,.587,.114)))*vec3(1.,.99,.955);
+  if(uBw>.5)g=vec3(dot(g,vec3(.299,.587,.114)))*uTone;
   // Grain, measured against a reference clip: one clumpy pattern shared by all three colours, a slow unevenness about seven grains wide,
   // and only soft colour clouds on top (film's three colour layers each have their own grain, but from a normal distance it reads as a gentle tint, not as coloured dots)
   if(uGm>1.5){
@@ -1013,6 +1050,37 @@ function develop(now){
         Ps=PL;
       }
     }
+    const starOn=S.star&&S.starAmt>0;
+    if(S.diffAmt>0||starOn){
+      if(!PR.fx){PR.fx=makeProg(FS_FX);if(!PR.hot2) PR.hot2=makeProg(FS_HOT2);}
+      if(PR.fx&&PR.hot2){
+        const PX=target("PX",pw,ph),dw=Math.max(16,pw>>2),dh=Math.max(16,ph>>2),DA=target("DA",dw,dh),DB=target("DB",dw,dh),
+          sw=Math.max(16,pw>>1),sh=Math.max(16,ph>>1),HS=target("HS",sw,sh),R1=target("R1",sw,sh),R2=target("R2",sw,sh),R3=target("R3",sw,sh),RA=target("RA",sw,sh);
+        if(S.diffAmt>0){                               // a wide, soft copy of the picture
+          bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[.0055,0],uThr:0});draw(DA);
+          bind(0,DA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,.0055*pw/ph],uThr:0});draw(DB);
+          bind(0,DB.tex);use(PR.blur,{uTex:{tex:0},uDir:[.016,0],uThr:0});draw(DA);
+          bind(0,DA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,.016*pw/ph],uThr:0});draw(DB);
+        }
+        if(starOn){
+          bind(0,Ps.tex);use(PR.hot2,{uTex:{tex:0},uPx:[1/pw,1/ph]});draw(HS);
+          gl.bindFramebuffer(gl.FRAMEBUFFER,RA.fb);gl.viewport(0,0,sw,sh);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+          for(const a of FX.ang[S.star]){
+            const dx=Math.cos(a),dy=Math.sin(a)*pw/ph,L=FX.len;
+            bind(0,HS.tex);use(PR.blur,{uTex:{tex:0},uDir:[dx*L[0],dy*L[0]],uThr:0});draw(R1);
+            bind(0,R1.tex);use(PR.blur,{uTex:{tex:0},uDir:[dx*L[1],dy*L[1]],uThr:0});draw(R2);
+            bind(0,R2.tex);use(PR.blur,{uTex:{tex:0},uDir:[dx*L[2],dy*L[2]],uThr:0});draw(R3);
+            gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);
+            use(PR.blur,{uTex:{tex:0},uDir:[0,0],uThr:0});
+            bind(0,R1.tex);draw(RA);bind(0,R2.tex);draw(RA);bind(0,R3.tex);draw(RA);
+            gl.disable(gl.BLEND);
+          }
+        }
+        bind(1,S.diffAmt>0?DB.tex:noiseTex);bind(2,starOn?RA.tex:noiseTex);bind(3,starOn?HS.tex:noiseTex);
+        bind(0,Ps.tex);use(PR.fx,{uTex:{tex:0},uDiff:{tex:1},uRays:{tex:2},uHot:{tex:3},uDf:S.diffAmt,uSt:starOn?S.starAmt*FX.gain/3:0});draw(PX);
+        Ps=PX;
+      }
+    }
     const T1=target("T1",pw,ph),PB=target("PB",pw,ph),so=F.soft*pw/600;
     bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[so/pw,0],uThr:0});draw(T1);
     bind(0,T1.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,so/ph],uThr:0});draw(PB);
@@ -1024,17 +1092,17 @@ function develop(now){
     const hasFl=S.lens&&LF.ok&&lensFlarePass(Ps,pw,ph,F.pShort);
     // film movement, flare and damage that carry from frame to frame
     dyn.breath+=(R()-.5)*.006;dyn.breath*=.94;
-    rollDamage(F.dmg);rollFilmFlare();
+    rollDamage(F.dmg*S.dmgAmt);rollFilmFlare();
     if(dmgHook) dmgHook(SCRP,SCRQ,DUSTP,DUSTQ);
-    const wv=F.weave;
+    const wv=F.weave*S.weaveAmt;
     bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);bind(5,lt||noiseTex);bind(6,grainTex);const GM=GRAIN[S.grain]||GRAIN[2],gpx=Math.min(cv.width,cv.height)/1080;
     const U={uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:lt?f:st.wb,uFlash:FLR.mul,uLut:{tex:5},uLutOn:lt?1:0,uGrainTex:{tex:6},uGm:S.grain,uGk:GM.k,uGrho:GM.rho||1,uGskew:GM.skew||0,uGrot:ROT[(R()*8)|0],uJit:[(GM.jit||0)*st.grain*F.grainMul*10.64*gpx/cv.width,(GM.jit||0)*st.grain*F.grainMul*10.64*gpx/cv.height],
       uDp:DUSTP,uDq:DUSTQ,uSc:SCRP,uSd:SCRQ,uDsz:F.dsz,uOut:[cv.width,cv.height],
       uWeave:[((R()-.5)*.0012+Math.sin(now/1100)*.0006)*wv,((R()-.5)*.0014+Math.sin(now/700)*.0008)*wv],
       uOff1:off1,uOff2:off2,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uBlack:st.black,uWhite:st.white,
-      uSeed:seed,uEv:S.ev,uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uVexp:F.vexp,uGrain:st.grain*F.grainMul*S.grainAmt,uGs:GM.gs*gpx,
-      uHal:st.hal*LOOK.hal*S.halAmt,uBloom:st.bloom*LOOK.bloom*(S.lensLook===1&&Ps!==Pt?LENSLOOK.bloom:1),uLift:st.bw?LOOK.lift*.6:LOOK.lift,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1),
-      uOver:S.overscan?1:0,uSide:S.overscan?S.side:0,uFmt:S.format==="s16"?1:0,uVig:F.vig,uCa:F.ca,uCorner:F.corner,
+      uSeed:seed,uEv:S.ev,uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uTone:st.tone||TONE0,uVexp:F.vexp,uGrain:st.grain*F.grainMul*S.grainAmt,uGs:GM.gs*gpx,
+      uHal:st.hal*LOOK.hal*S.halAmt,uBloom:st.bloom*LOOK.bloom*S.bloomAmt*(S.lensLook===1?LENSLOOK.bloom:1),uLift:st.bw?LOOK.lift*.6:LOOK.lift,uBw:st.bw,uFlicker:1+((R()-.5)*.03+dyn.breath)*(S.format==="s16"?.45:1)*S.breathAmt,
+      uOver:S.overscan?1:0,uSide:S.overscan?S.side:0,uFmt:S.format==="s16"?1:0,uVig:Math.min(.98,F.vig*S.vigAmt),uCa:F.ca,uCorner:F.corner,
       uT:geo.t,uE:geo.e};
     // The small previews are drawn first. Reading them back makes the page wait for the graphics chip, and at this point it has only small jobs queued.
     if(liveThumbs(U,PB,pw,ph,f)){bind(0,PB.tex);bind(5,lt||noiseTex);bind(6,grainTex);}
@@ -1055,10 +1123,11 @@ const TH={gap:170,cost:0,last:0,tw:0,th:0,px:null,img:null,zero4:new Float32Arra
 function stockLook(name,f){                          // the settings that belong to one film
   const st=FILM_STOCKS[name],lt=lutFor(name);
   return {lt,u:{uLutOn:lt?1:0,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uLkWb:lt?f:st.wb,uBlack:st.black,uWhite:st.white,
-    uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uHal:st.hal*LOOK.hal,uBloom:st.bloom*LOOK.bloom,uLift:st.bw?LOOK.lift*.6:LOOK.lift,uBw:st.bw}};
+    uSat:st.sat,uK:st.k,uGain:st.gain,uOff:st.off,uGam:st.gam,uSh:st.sh,uKc:st.kc,uHd:st.hd,uTone:st.tone||TONE0,uHal:st.hal*LOOK.hal*S.halAmt,uBloom:st.bloom*LOOK.bloom*S.bloomAmt,uLift:st.bw?LOOK.lift*.6:LOOK.lift,uBw:st.bw}};
 }
 function sizeStrip(){
-  const a=SHAPES[S.shape],port=srcAspect<1,w=port?84:Math.round(75*a),h=port?Math.round(84*a):75;
+  const a=SHAPES[S.shape],port=srcAspect<1,room=Math.max(60,(($("mainBoard").offsetHeight||$("filmSheet").offsetHeight||168)-34)-28);   // what the films board leaves for a picture
+  const h=port?Math.min(room,Math.round(84*a)):Math.min(room,84),w=port?Math.round(h/a):Math.round(h*a);
   let changed=false;
   for(const b of $("strip").children){const c=b.firstElementChild;if(c.style.width!==w+"px"||c.style.height!==h+"px"){c.style.width=w+"px";c.style.height=h+"px";changed=true;}}
   if(changed) showFilmInStrip(false);                // new sizes: the old place in the strip no longer fits
@@ -1130,8 +1199,33 @@ function tick(now){requestAnimationFrame(tick);if(!MV.manual) step(now);}
 /* ---------- the two sliders on the picture ---------- */
 // zoomGoal is where the zoom slider was put; the zoom glides there instead of jumping (a real zoom ring has weight).
 let zoomGoal=null,fadeSeen="";
+const RUL=[["starAmt","star strength",2,1],["diffAmt","diffusion",1,0],["bloomAmt","bloom",2,1],["halAmt","halation",1,1],["grainAmt","grain",1,1],["vigAmt","dark corners",2,1],["breathAmt","flicker",2,1],["weaveAmt","wobble",2,1],["dmgAmt","dust",2,1],["filter","colour filter",8,4]];
+function syncRulers(){
+  for(const [k,nm,max] of RUL){
+    const el=$("r_"+k);if(!el) continue;const v=S[k],val=el.querySelector(".val");
+    el.querySelector(".fk").style.top=((1-v/max)*100)+"%";
+    if(k==="filter"){val.textContent=FILTERS[v][0];val.classList.add("w");el.setAttribute("aria-valuetext",FILTERS[v][0]);el.classList.toggle("zero",v===4);}
+    else{val.textContent=String(Math.round(v*100));el.setAttribute("aria-valuenow",Math.round(v*100));el.classList.toggle("zero",v===0);}
+  }
+}
+function buildRulers(){
+  const box=$("rulers");
+  for(const [k,nm,max,def] of RUL){
+    const el=document.createElement("div");el.className="pn lp fader v";el.id="r_"+k;el.tabIndex=0;el.setAttribute("role","slider");
+    el.setAttribute("aria-label",nm+". Slide up for more, down for less. Tap twice to put it back");
+    if(k!=="filter"){el.setAttribute("aria-valuemin",0);el.setAttribute("aria-valuemax",max*100);}
+    el.innerHTML='<b class="num val"></b><i class="ft"></i><b class="fk"></b><span class="nm">'+nm+'</span>';
+    box.appendChild(el);
+    const set=v=>{if(v===S[k]) return;S[k]=v;if(k==="filter"){$("filterRange").value=v;$("filterOut").textContent=FILTERS[v][0];}remember();syncRulers();};
+    fader(el,true,()=>S[k]/max,f=>set(k==="filter"?Math.round(f*max):Math.round(f*max*20)/20),()=>set(def));
+    el.addEventListener("keydown",e=>{const d=e.key==="ArrowUp"||e.key==="ArrowRight"?1:e.key==="ArrowDown"||e.key==="ArrowLeft"?-1:0;if(!d) return;e.preventDefault();e.stopPropagation();
+      set(k==="filter"?Math.max(0,Math.min(max,S[k]+d)):Math.max(0,Math.min(max,Math.round((S[k]+d*.05)*20)/20)));});
+  }
+  syncRulers();
+}
 function syncFaders(){
-  const k=S.ev+"|"+S.zoom.toFixed(3);if(k===fadeSeen) return;fadeSeen=k;
+  const k=S.ev+"|"+S.zoom.toFixed(3)+"|"+(CZ.ok?1:0)+mode;if(k===fadeSeen) return;fadeSeen=k;
+  $("zoomHow").textContent=mode!=="live"?"":CZ.ok?"phone zoom":S.zoom>1.02?"enlarged":"";
   $("briKnob").style.top=((3-S.ev)/6*100)+"%";$("briSl").setAttribute("aria-valuenow",S.ev);
   const zk=$("zoomKnob");zk.style.left=((S.zoom-1)/3*100)+"%";zk.textContent=(Math.abs(S.zoom-Math.round(S.zoom))<.05?Math.round(S.zoom):S.zoom.toFixed(1))+"x";$("zoomSl").setAttribute("aria-valuenow",+S.zoom.toFixed(1));
 }
@@ -1706,7 +1800,7 @@ function paint(){
   $("stockBtn").textContent=S.stock;$("stockBtn").setAttribute("aria-label","Film in the camera: "+S.stock+". Press to change it");
   $("filmSub").textContent=FILM_INFO[S.stock]?FILM_INFO[S.stock][0].replace(". ",", "):"";
   $("trigLabel").textContent=recording?"Stop":S.shoot==="photo"?"Photo":"Record";
-  for(const b of $("lookSeg").children) b.setAttribute("aria-pressed",+b.dataset.v===S.lensLook);
+  for(const b of $("lookSeg").querySelectorAll("button")) b.setAttribute("aria-pressed",+b.dataset.v===S.lensLook);
   $("filmNote").textContent=S.stock+(FILM_INFO[S.stock]?" — "+FILM_INFO[S.stock][0]:"");
   const ev=(S.ev>0?"+":S.ev<0?"−":"")+Math.abs(S.ev).toFixed(1),at=((S.ev+3)/6*100)+"%";
   $("evVal").textContent=ev;$("evVal").style.left=at;$("evNeedle").style.left=at;
@@ -1723,7 +1817,8 @@ function paint(){
   $("shapeSeg").hidden=isVhs;
   $("histSwitch").setAttribute("aria-checked",S.histo);
   $("torchBtn").setAttribute("aria-pressed",S.light);$("torchBtn").setAttribute("aria-label",S.light?"Switch the light off":"Switch the light on");
-  $("grainRange").value=Math.round(S.grainAmt*100);$("grainOut").textContent=Math.round(S.grainAmt*100);$("halRange").value=Math.round(S.halAmt*100);$("halOut").textContent=Math.round(S.halAmt*100);
+  for(const b of $("starSeg").querySelectorAll("button")) b.setAttribute("aria-pressed",+b.dataset.v===S.star);
+  syncRulers();
   {const L=FORMATS[S.format].stocks,k=Math.min(2,Math.floor(L.indexOf(S.stock)*3/L.length)),pg=$("filmPg").children;for(let i=0;i<3;i++) pg[i].classList.toggle("on",i===k);}
   $("pic").classList.toggle("grid",S.grid);$("gridSwitch").setAttribute("aria-checked",S.grid);
   showEvFigure();     // (not "rec": that name is the lamp's own style)
@@ -1757,16 +1852,23 @@ function paint(){
   $("filterRange").value=S.filter;$("filterOut").textContent=FILTERS[S.filter][0];
   $("speedRange").value=S.zoomSpeed;$("speedOut").textContent=S.zoomSpeed.toFixed(1)+"×";
 }
+function showBoard(which){                           // what the board under the picture shows: the camera's own panels, the films, or the lab
+  $("mainBoard").hidden=which!=="main";$("filmSheet").hidden=which!=="films";$("labBoard").hidden=which!=="lab";
+  $("cam").classList.toggle("labon",which==="lab");$("settingsBtn").setAttribute("aria-pressed",which==="lab");
+  $("settingsBtn").setAttribute("aria-label",which==="lab"?"Close the lab":"Lab: lens look, star filter, diffusion, bloom, grain and more");
+}
 function filmSheet(on){
   if(on&&recording){toast("Stop recording to change film.");return;}
-  $("filmSheet").hidden=!on;
-  if(on){TH.last=0;showFilmInStrip(false);$("filmClose").focus();}else $("stockBtn").focus();
+  if(!on&&$("filmSheet").hidden) return;
+  showBoard(on?"films":"main");
+  if(on){TH.last=0;sizeStrip();showFilmInStrip(false);$("filmClose").focus();}else $("stockBtn").focus();
 }
-$("lookSeg").onclick=e=>{const v=e.target.dataset&&e.target.dataset.v;if(v==null||+v===S.lensLook) return;S.lensLook=+v;remember();paint();};
+function labBoard(on){showBoard(on?"lab":"main");if(on){syncRulers();paintStatus();lutStatus();}}
+$("starSeg").onclick=e=>{const b=e.target.closest&&e.target.closest("button");if(!b||+b.dataset.v===S.star) return;S.star=+b.dataset.v;remember();paint();};
+$("aboutBtn").onclick=()=>{paintStatus();lutStatus();$("settings").hidden=false;$("settingsClose").focus();};
+$("lookSeg").onclick=e=>{const b=e.target.closest&&e.target.closest("button");if(!b||+b.dataset.v===S.lensLook) return;S.lensLook=+b.dataset.v;remember();paint();};
 $("torchBtn").onclick=()=>$("lightKey").click();
 $("fpsTap").onclick=()=>$("fpsBtn").click();
-$("grainRange").oninput=e=>{S.grainAmt=+e.target.value/100;$("grainOut").textContent=e.target.value;remember();};
-$("halRange").oninput=e=>{S.halAmt=+e.target.value/100;$("halOut").textContent=e.target.value;remember();};
 { // a sideways push on the film card steps to the next or the last film; a tap opens the list
   const fc=$("filmLabel");let at=null;
   fc.addEventListener("pointerdown",e=>{at={x:e.clientX,y:e.clientY,done:false};});
@@ -1936,8 +2038,8 @@ function lutStatus(){
   const n=Object.keys(LUT.tex).length,all=typeof SF_LUT==="undefined"?0:Object.keys(SF_LUT).length;
   $("lutStatus").textContent="Film colours: "+(LUT.failed?"some could not be loaded on this phone ("+n+" of "+all+").":n===all?"all "+all+" loaded.":n?n+" of "+all+" loaded.":"they load when a film needs them.");
 }
-$("settingsBtn").onclick=()=>{paintStatus();lutStatus();$("settings").hidden=false;$("settingsClose").focus();};
-$("settingsClose").onclick=()=>{$("settings").hidden=true;$("settingsBtn").focus();};
+$("settingsBtn").onclick=()=>labBoard($("labBoard").hidden);
+$("settingsClose").onclick=()=>{$("settings").hidden=true;$("aboutBtn").focus();};
 $("galleryBtn").onclick=()=>{$("gallery").hidden=false;$("galleryClose").focus();};
 $("galleryClose").onclick=()=>{for(const v of $("clips").querySelectorAll("video")) v.pause();$("gallery").hidden=true;$("galleryBtn").focus();};
 // One press on the main screen turns to the other camera. The picture dims for the moment the phone needs.
@@ -1983,11 +2085,12 @@ document.addEventListener("keydown",e=>{
   if(!$("settings").hidden) $("settingsClose").click();
   else if(!$("gallery").hidden) $("galleryClose").click();
   else if(!$("filmSheet").hidden) filmSheet(false);
+  else if(!$("labBoard").hidden) labBoard(false);
 });
 
 /* ---------- start ---------- */
 $("shootInput").setAttribute("capture",S.facing);
-buildStocks();paint();renderClips();
+buildRulers();buildStocks();paint();renderClips();
 glOK=initGL();
 if(!glOK) toast("This browser cannot draw the film look (WebGL is off).",6000);
 sizeCanvas(srcAspect);
@@ -2001,7 +2104,7 @@ if(!FRAMED&&"serviceWorker" in navigator&&(location.protocol==="https:"||locatio
 $("homeNote").hidden=!(IS_IOS&&!STANDALONE&&!FRAMED);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
+window.__reel8={FX,RUL,labBoard,showBoard,syncRulers,LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
   get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
   blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";card(false);},snap(){return new Promise(r=>{snapCb=r;});},

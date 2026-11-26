@@ -300,6 +300,8 @@ body{font-family:var(--sans);font-stretch:normal}
 .pn{position:relative;min-width:0;border-radius:4px;background:var(--pn);color:var(--tx);font-family:var(--sans)}
 button.pn:active,.pn button:active{background-color:#1f1f1f}
 .r1{height:44px}
+.board{display:flex;flex-direction:column;gap:var(--g);flex:none;min-width:0;height:168px}
+.board[hidden]{display:none}
 #shapeSeg{flex:0 0 38%;display:flex}
 #shapeSeg button{flex:1;min-width:0;height:44px;border-radius:4px;background:none;font-size:15px;font-weight:400;color:var(--dim)}
 #shapeSeg button[aria-pressed="true"]{color:var(--hi)}
@@ -338,8 +340,7 @@ button.pn:active,.pn button:active{background-color:#1f1f1f}
 #briSl{flex:0 0 20.6%}
 #briSl .ic{position:absolute;left:12px;top:12px;color:var(--pu);display:block;line-height:0}
 #cam #evRead{position:absolute;left:6px;bottom:4px;right:auto;top:auto;margin:0;min-width:0;height:36px;padding:0 6px;border-radius:4px;background:none;font-family:var(--sans);font-size:17px;line-height:36px;font-weight:400;color:var(--grn);text-shadow:none}
-#briSl .ft{position:absolute;right:11px;top:12px;bottom:12px;width:14px;
-  background:repeating-linear-gradient(0deg,var(--dim) 0 1px,transparent 1px 10%) 4px 0/7px 100% no-repeat,repeating-linear-gradient(0deg,var(--tx) 0 1.5px,transparent 1.5px 20%) 0 0/100% 100% no-repeat,linear-gradient(0deg,var(--tx) 0 1.5px,transparent 1.5px) 0 0/100% 100% no-repeat}
+#briSl .ft{position:absolute;right:11px;top:12px;bottom:12px;width:14px;background:var(--ticks) 0 0/100% 100% no-repeat}
 #briSl .fk{position:absolute;left:-3px;width:20px;height:1.5px;margin-top:-.75px;background:var(--grn)}
 .r3{height:60px}
 #cam .thumb{flex:0 0 24%;width:auto;height:auto;overflow:hidden;padding:0;border:0;border-radius:4px;display:block}
@@ -358,16 +359,51 @@ button.pn:active,.pn button:active{background-color:#1f1f1f}
 #cam .shoot[aria-pressed="true"]{box-shadow:inset 0 0 0 1.5px var(--red)}
 #cam .shoot[aria-pressed="true"]>b{width:23px;height:23px;border-radius:4px;transform:scale(.82)}
 #cam.photo .shoot>b{background:var(--hi)}
-#cam.rolling #shapeSeg,#cam.rolling .filmcard,#cam.rolling .flipbtn,#cam.rolling .mode,#cam.rolling .thumb,#cam.rolling #fpsTap{opacity:.35}
+#cam.rolling #shapeSeg,#cam.rolling #soundKey,#cam.rolling .filmcard,#cam.rolling .flipbtn,#cam.rolling .mode,#cam.rolling .thumb,#cam.rolling #fpsTap{opacity:.35}
 #cam.carded .deck{visibility:hidden}
-@media (max-height:700px){.r2{height:104px}.r3{height:54px}.r1{height:40px}#shapeSeg button{height:40px}#zoomSl .ft{top:23px}.filmcard{padding-bottom:10px}.filmcard .pg{margin-top:7px}}
+@media (max-height:700px){.board{height:148px}.r2{height:104px}.r3{height:54px}.r1{height:40px}#shapeSeg button{height:40px}#zoomSl .ft{top:23px}.filmcard{padding-bottom:10px}.filmcard .pg{margin-top:7px}}
 @media (max-width:359px){#shapeSeg button{font-size:13.5px}#cam .thumb{flex-basis:20%}#cam .shoot{flex-basis:25%}#cam #evRead{left:0;font-size:14.5px}#briSl .ft{right:8px}#fpsTap::before{display:none}#recTime{left:10px}#cam #stockBtn{font-size:17px}#recTime,#cam #fpsRead,#cam #evRead{font-size:15.5px}.key{font-size:12.5px}.key span{left:10px}.key svg{left:9px}#fpsTap{padding-left:9px;padding-right:6px}}
 @media (orientation:landscape) and (max-height:540px){
   #cam{grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr);grid-template-areas:"finder deck"}
   #cam .deck{flex-direction:column;justify-content:center;margin:0;padding:0 2px 0 0;gap:var(--g)}
   #recTime,#cam #fpsRead,#cam #evRead{font-size:15.5px}#fpsTap{padding-left:8px;padding-right:6px}#cam #evRead{left:0;font-size:14.5px}
-  .r2{height:104px}.r3{height:54px}.r1{height:40px}#shapeSeg button{height:40px}#zoomSl .ft{top:23px}.filmcard{padding-bottom:10px}.filmcard .pg{margin-top:7px}
+  .board{height:148px}.r2{height:104px}.r3{height:54px}.r1{height:40px}#shapeSeg button{height:40px}#zoomSl .ft{top:23px}.filmcard{padding-bottom:10px}.filmcard .pg{margin-top:7px}
 }
+
+/* ---- the board swaps in place: films, or the lab. The picture stays where it is. ---- */
+.bhead{display:flex;align-items:center;gap:var(--g);height:30px;flex:none}
+.bhead .filmnote{flex:1;min-width:0;margin:0;padding:0 10px;min-height:0;height:30px;line-height:30px;border-radius:4px;background:var(--pn);font-size:12.5px;font-weight:300;color:var(--tx);text-transform:lowercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bx{flex:none;width:44px;height:30px;border-radius:4px;background:var(--pn);color:var(--hi);font-size:18px;line-height:1}
+#cam #filmSheet .strip{flex:1;min-height:0;display:flex;flex-direction:row;align-items:stretch;gap:var(--g);padding:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;grid-template-columns:none}
+#cam #filmSheet .film{flex:none;min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:0;padding:6px 6px 7px;border-radius:4px;background:var(--pn)}
+#cam #filmSheet .film canvas{aspect-ratio:auto;border-radius:3px;outline:1.5px solid transparent;outline-offset:-1.5px;display:block}
+#cam #filmSheet .film .code{font-family:var(--sans);font-size:12.5px;line-height:1.1;font-weight:400;text-transform:lowercase;color:var(--tx);padding:0 0 0 1px}
+#cam #filmSheet .film .ds{display:none}
+#cam #filmSheet .film[aria-pressed="true"] canvas{outline-color:var(--grn)}
+#cam #filmSheet .film[aria-pressed="true"] .code{color:var(--hi)}
+.lrow{flex:1;min-height:0;display:flex;gap:var(--g);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.lrow::-webkit-scrollbar,#cam #filmSheet .strip::-webkit-scrollbar{display:none}
+.lp{flex:none;width:72px;height:100%;display:block;text-align:left;overflow:hidden}
+.lp .nm{position:absolute;left:10px;right:6px;bottom:10px;font-size:12px;line-height:1.15;font-weight:300;color:var(--tx);text-transform:lowercase}
+.lp.fader{touch-action:pan-x}
+.lp.fader .val{position:absolute;left:10px;top:11px;font-size:17px;line-height:1;font-weight:400;color:var(--grn);text-transform:lowercase;white-space:nowrap}
+.lp.fader .val.w{font-size:12.5px;top:13px}
+.lp.fader .ft{position:absolute;right:10px;top:12px;bottom:46px;width:14px;background:var(--ticks) 0 0/100% 100% no-repeat}
+.lp.fader .fk{position:absolute;left:-3px;width:20px;height:1.5px;margin-top:-.75px;background:var(--grn)}
+.lp.fader.zero .val{color:var(--dim)}
+.lp.sw>b{position:absolute;left:10px;top:11px;font-size:17px;line-height:1;font-weight:400;color:var(--dim);text-transform:lowercase}
+.lp.sw[role="switch"]>b::before{content:"off"}
+.lp.sw[aria-checked="true"]>b{color:var(--hi)}.lp.sw[aria-checked="true"]>b::before{content:"on"}
+#cam #soundKey>b{color:var(--hi)}#cam #soundKey.set>b{color:var(--dim)}
+#aboutBtn>b{color:var(--tx)}
+.lp.sw:active{background:#1f1f1f}
+.lp.seg3{width:96px;display:flex;flex-direction:column;justify-content:flex-start;padding:5px 0 0}
+.lp.seg3 button{display:block;width:100%;height:36px;padding:0 10px;text-align:left;background:none;font-size:14px;font-weight:400;color:var(--dim);text-transform:lowercase}
+.lp.seg3 button[aria-pressed="true"]{color:var(--hi)}
+#cam.labon .labbtn{color:var(--grn)}
+#zoomHow{position:absolute;right:10px;top:6px;font-size:10.5px;line-height:1;font-weight:300;color:var(--dim);text-transform:lowercase;pointer-events:none}
+:root{--ticks:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 120' preserveAspectRatio='none'%3E%3Cg fill='none' stroke-width='1.5' vector-effect='non-scaling-stroke'%3E%3Cpath stroke='%238a8a8a' vector-effect='non-scaling-stroke' d='M0 .75h14M0 20.5h14M0 40.25h14M0 60h14M0 79.75h14M0 99.5h14M0 119.25h14'/%3E%3Cpath stroke='%23474747' stroke-width='1' vector-effect='non-scaling-stroke' d='M4 10.6h7M4 30.4h7M4 50.1h7M4 69.9h7M4 89.6h7M4 109.4h7'/%3E%3C/g%3E%3C/svg%3E")}
+@media (display-mode:standalone){html,body{height:100vh}}
 /* sheets, in the same hand */
 .sheet{background:#0f0f0f;border-top:1px solid var(--ln);gap:12px}
 .sheet h2{font-family:var(--sans);font-stretch:normal;font-size:21px;font-weight:500;letter-spacing:0;text-transform:lowercase;color:var(--hi)}
@@ -375,15 +411,6 @@ button.pn:active,.pn button:active{background-color:#1f1f1f}
 .note{color:var(--tx);font-weight:300}
 .note a{color:var(--hi)}
 .filmnote{margin:0;min-height:20px;font-size:14.5px;font-weight:300;text-transform:lowercase;color:var(--hi)}
-#filmSheet .strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px var(--g);padding:0 18px 0 0;overflow:visible}
-#filmSheet .film{min-width:0;flex-direction:column;align-items:stretch;gap:5px;padding:0;background:none;text-align:left}
-#filmSheet .film canvas{width:100% !important;height:auto !important;aspect-ratio:1/1;object-fit:cover;border-radius:4px;outline:1.5px solid transparent;outline-offset:-1.5px}
-#filmSheet .film .code{font-family:var(--sans);font-size:14px;line-height:1.1;font-weight:400;text-transform:lowercase;color:var(--tx);padding-left:2px}
-#filmSheet .film .ds{display:none}
-#filmSheet .film[aria-pressed="true"] canvas{outline-color:var(--grn)}
-#filmSheet .film[aria-pressed="true"] .code{color:var(--hi)}
-@media (max-height:700px){#filmSheet .film canvas{aspect-ratio:4/3}}
-@media (orientation:landscape) and (max-height:540px){#filmSheet .strip{grid-template-columns:repeat(6,minmax(0,1fr))}#filmSheet .film canvas{aspect-ratio:4/3}}
 .sheet .keys{display:flex;flex:none;gap:var(--g);margin:0;padding:0;border:0;background:none}
 .sheet .keys .key{position:relative;flex:1;height:60px;border:0;border-radius:4px;background:var(--pn);display:block;text-align:left}
 .sheet .keys .key b{position:absolute;left:12px;top:10px;font-size:20px;line-height:1;font-weight:400;color:var(--hi);text-transform:lowercase}
@@ -435,9 +462,10 @@ input[type=range]{accent-color:var(--grn)}
   </main>
 
   <footer class="deck">
+    <div class="board" id="mainBoard">
     <div class="dr r1">
       <div class="pn shape" id="shapeSeg" role="group" aria-label="Picture shape"><button data-v="1:1">1:1</button><button data-v="4:3">4:3</button><button data-v="16:9">16:9</button></div>
-      <div class="pn fader h" id="zoomSl" role="slider" tabindex="0" aria-label="Zoom. Slide right to come closer. Tap twice for no zoom" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><i class="ft"></i><b class="fk num" id="zoomKnob">1x</b></div>
+      <div class="pn fader h" id="zoomSl" role="slider" tabindex="0" aria-label="Zoom. Slide right to come closer. Tap twice for no zoom" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><i class="ft"></i><b class="fk num" id="zoomKnob">1x</b><small id="zoomHow"></small></div>
     </div>
     <div class="dr r2">
       <div class="pn filmcard" id="filmLabel"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="5.6" r="2.6"/><circle cx="12" cy="18.4" r="2.6"/><circle cx="6.5" cy="8.8" r="2.6"/><circle cx="17.5" cy="8.8" r="2.6"/><circle cx="6.5" cy="15.2" r="2.6"/><circle cx="17.5" cy="15.2" r="2.6"/></svg></span><button class="code" id="stockBtn" aria-label="Film in the camera">200T</button><span class="sub" id="filmSub">Indoor light</span><span class="pg" id="filmPg" aria-hidden="true"><i></i><i></i><i></i></span></div>
@@ -447,6 +475,24 @@ input[type=range]{accent-color:var(--grn)}
       </div>
       <div class="pn fader v" id="briSl" role="slider" tabindex="0" aria-label="Brightness. Slide up for brighter, down for darker. Tap twice for normal" aria-valuemin="-3" aria-valuemax="3" aria-valuenow="0"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 3h18v18H3z" fill="currentColor"/><path d="M21 3 3 21" stroke="#161616" stroke-width="1.6"/><path d="M6 8h5" stroke="#161616" stroke-width="1.6"/><path d="M13.5 16.5h5M16 14v5" stroke="#161616" stroke-width="1.6"/></svg></span><button class="num" id="evRead" aria-label="Brightness. Press to set it back to normal">+0.0</button><i class="ft"></i><b class="fk" id="briKnob"></b></div>
     </div>
+    </div>
+    <div class="board" id="filmSheet" hidden aria-label="Films">
+      <div class="bhead"><p class="filmnote" id="filmNote"></p><button class="bx" id="filmClose" aria-label="Close films">&times;</button></div>
+      <div class="strip" id="strip"></div>
+    </div>
+    <div class="board" id="labBoard" hidden aria-label="Lab">
+      <div class="lrow" id="labRow">
+        <div class="pn lp seg3" id="lookSeg" role="group" aria-label="Lens look"><button data-v="0">clean</button><button data-v="1">swirl</button><button data-v="2">anamorphic</button><span class="nm">lens</span></div>
+        <div class="pn lp seg3" id="starSeg" role="group" aria-label="Star filter: sparkles on bright lights"><button data-v="0">off</button><button data-v="4">4 point</button><button data-v="6">6 point</button><span class="nm">star</span></div>
+        <span id="rulers" style="display:contents"></span>
+        <button class="pn lp sw" id="gridSwitch" role="switch" aria-checked="false" aria-label="Grid: lines to help you frame"><b></b><span class="nm" id="gridLabel">grid</span></button>
+        <button class="pn lp sw" id="burnSwitch" role="switch" aria-checked="true" aria-label="Light leak: a flash of orange as each shot starts"><b></b><span class="nm" id="burnLabel">light leak</span></button>
+        <button class="pn lp sw" id="soundKey" aria-pressed="true"><b class="num">on</b><span class="nm">sound</span></button>
+        <button class="pn lp sw" id="fsndSwitch" role="switch" aria-checked="true" aria-label="Old film sound: thin, with a slight sway"><b></b><span class="nm" id="fsndLabel">old film sound</span></button>
+        <button class="pn lp sw" id="whirrSwitch" role="switch" aria-checked="false" aria-label="Camera whirr: adds the motor noise to the sound"><b></b><span class="nm" id="whirrLabel">camera whirr</span></button>
+        <button class="pn lp sw" id="aboutBtn" aria-label="About this camera: zoom, colour tables and credits"><b>i</b><span class="nm">about</span></button>
+      </div>
+    </div>
     <div class="dr r3">
       <button class="pn thumb clipsbtn" id="galleryBtn" aria-label="Open clips"><i class="th" id="rollThumb" aria-hidden="true"></i><b class="num" id="clipCount">0</b></button>
       <button class="pn key flipbtn" id="flipBtn" aria-label="Turn to the other camera"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M9 4 7.6 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.6L15 4z"/><path d="M8.6 12.2a3.5 3.5 0 0 1 6-2l.9-.9v3h-3l1.1-1.1a2.1 2.1 0 0 0-3.6 1zM15.4 12.9a3.5 3.5 0 0 1-6 2l-.9.9v-3h3l-1.1 1.1a2.1 2.1 0 0 0 3.6-1z" fill="#161616"/></svg><span>flip</span></button>
@@ -455,48 +501,17 @@ input[type=range]{accent-color:var(--grn)}
     </div>
   </footer>
 
-  <section class="sheet" id="filmSheet" hidden aria-label="Films">
-    <div class="head"><h2>Films</h2><button id="filmClose" aria-label="Close films">&times;</button></div>
-    <p class="filmnote" id="filmNote"></p>
-    <div class="strip" id="strip" role="group" aria-label="Film"></div>
-  </section>
 
   <section class="sheet" id="settings" hidden aria-label="Settings">
-    <div class="head"><h2>Lab</h2><button id="settingsClose" aria-label="Close">&times;</button></div>
-    <div class="keys">
+    <div class="head"><h2>About</h2><button id="settingsClose" aria-label="Close">&times;</button></div>
+    <div id="retired" hidden>
       <button class="key" id="lightKey" aria-pressed="false"><b class="num">off</b><span class="lab">light</span></button>
       <button class="key" id="lensKey"><b class="num">1&times;</b><span class="lab">lens</span></button>
       <button class="key" id="fpsBtn" aria-label="Frames a second"><b class="num">18</b><span class="lab">speed</span></button>
-      <button class="key" id="soundKey" aria-pressed="true"><b class="num">on</b><span class="lab">sound</span></button>
-    </div>
-    <div class="field look"><span>Lens look<small>Old glass: a swirl at the edges, or a cinema lens with light streaks</small></span>
-      <div class="seg" id="lookSeg" role="group" aria-label="Lens look"><button data-v="0">Clean</button><button data-v="1">Swirl</button><button data-v="2">Anamorphic</button></div>
-    </div>
-    <div class="field"><span id="gridLabel">Grid<small>Lines to help you frame</small></span>
-      <button class="switch" id="gridSwitch" role="switch" aria-checked="false" aria-labelledby="gridLabel"></button>
-    </div>
-    <div class="field"><span id="burnLabel">Light leak<small>A flash of orange as each shot starts</small></span>
-      <button class="switch" id="burnSwitch" role="switch" aria-checked="true" aria-labelledby="burnLabel"></button>
-    </div>
-    <div class="field"><span id="fsndLabel">Old film sound<small>Thin, with a slight sway</small></span>
-      <button class="switch" id="fsndSwitch" role="switch" aria-checked="true" aria-labelledby="fsndLabel"></button>
-    </div>
-    <div class="field"><span id="whirrLabel">Camera whirr<small>Adds the motor noise to the sound</small></span>
-      <button class="switch" id="whirrSwitch" role="switch" aria-checked="false" aria-labelledby="whirrLabel"></button>
-    </div>
     <div class="slide">
-      <div class="field"><label for="grainRange">Grain<small>How much film grain. 100 is the film's own amount</small></label><output id="grainOut" for="grainRange">100</output></div>
-      <input type="range" id="grainRange" min="0" max="100" step="5" value="100">
-    </div>
-    <div class="slide">
-      <div class="field"><label for="halRange">Halation<small>The red glow round bright lights. 100 is the film's own amount</small></label><output id="halOut" for="halRange">100</output></div>
-      <input type="range" id="halRange" min="0" max="100" step="5" value="100">
-    </div>
-    <div class="slide">
-      <div class="field"><label for="filterRange">Colour filter<small>A warm or cool tint over the whole picture</small></label><output id="filterOut" for="filterRange">None</output></div>
+      <div class="field"><label for="filterRange">Colour filter</label><output id="filterOut" for="filterRange">None</output></div>
       <input type="range" id="filterRange" min="0" max="8" step="1" value="4">
     </div>
-    <div id="retired" hidden>
     <div class="field"><span id="histLabel">Light graph<small>Shows how dark or bright the picture is</small></span>
       <button class="switch" id="histSwitch" role="switch" aria-checked="false" aria-labelledby="histLabel"></button>
     </div>
