@@ -502,6 +502,7 @@ input[type=range]{accent-color:var(--grn)}
         <span id="rulers" style="display:contents"></span>
         <button class="pn lp sw" id="gridSwitch" role="switch" aria-checked="false" aria-label="Grid: lines to help you frame"><b></b><span class="nm" id="gridLabel">grid</span></button>
         <button class="pn lp sw" id="burnSwitch" role="switch" aria-checked="true" aria-label="Light leak: a flash of orange as each shot starts"><b></b><span class="nm" id="burnLabel">light leak</span></button>
+        <button class="pn lp sw" id="lensSwitch" role="switch" aria-checked="false" aria-label="Lens flare: a soft veil and two faint spots when a strong light is in the picture"><b></b><span class="nm" id="lensLabel">lens flare</span></button>
         <button class="pn lp sw" id="soundKey" aria-pressed="true"><b class="num">on</b><span class="nm">sound</span></button>
         <button class="pn lp sw" id="fsndSwitch" role="switch" aria-checked="true" aria-label="Old film sound: thin, with a slight sway"><b></b><span class="nm" id="fsndLabel">old film sound</span></button>
         <button class="pn lp sw" id="whirrSwitch" role="switch" aria-checked="false" aria-label="Camera whirr: adds the motor noise to the sound"><b></b><span class="nm" id="whirrLabel">camera whirr</span></button>
@@ -555,9 +556,6 @@ input[type=range]{accent-color:var(--grn)}
       <button class="switch" id="overSwitch" role="switch" aria-checked="false" aria-labelledby="overLabel"></button>
     </div>
     <div class="seg dim" id="sideSeg"><button data-v="2">Top</button><button data-v="3">Bottom</button><button data-v="0">Left</button><button data-v="1">Right</button></div>
-    <div class="field"><span id="lensLabel">Lens flare (lamps and sun)</span>
-      <button class="switch" id="lensSwitch" role="switch" aria-checked="true" aria-labelledby="lensLabel"></button>
-    </div>
     <div class="field"><span id="moveLabel">Film movement (slight smear)</span>
       <button class="switch" id="moveSwitch" role="switch" aria-checked="true" aria-labelledby="moveLabel"></button>
     </div>
@@ -634,7 +632,8 @@ Object.assign(FILM_STOCKS,{
   "ROSEL": {wb:[1.07,0.96,1.03],sat:0.80,k:3.5,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1],hd:.45,black:[.090,.062,.080],white:[.965,.900,.925],grain:.55,hal:4.4,bloom:.15,bw:0,dust:1},
   "NOCTAR":{wb:[0.80,0.98,1.28],sat:1.02,k:5.3,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1.05],hd:.4,black:[.010,.020,.052],white:[.860,.925,.975],grain:.60,hal:6.6,bloom:.20,bw:0,dust:1},
   "UMBRIN":{wb:[1.00,1.00,1.00],sat:0.00,k:5.2,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1],hd:0,black:[.040,.040,.040],white:[.950,.950,.950],grain:.55,hal:3.0,bloom:.11,bw:1,tone:[1,.86,.64],dust:1},
-  "RUBRA": {wb:[1.03,1.00,0.98],sat:1.62,k:6.5,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1.05,1,1.05],hd:.25,black:[.020,.020,.026],white:[.955,.935,.905],grain:.40,hal:3.2,bloom:.09,bw:0,dust:1}
+  "RUBRA": {wb:[1.03,1.00,0.98],sat:1.62,k:6.5,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1.05,1,1.05],hd:.25,black:[.020,.020,.026],white:[.955,.935,.905],grain:.40,hal:3.2,bloom:.09,bw:0,dust:1},
+  "NOIRA": {wb:[1.00,1.00,1.00],sat:0.00,k:7.8,gain:1.09,off:0,gam:[1,1,1],sh:1.2,kc:[1,1,1],hd:0,black:[.008,.008,.008],white:[.975,.975,.975],grain:1.05,hal:2.2,bloom:.10,bw:1,tone:[1,1,1],dust:1}
 });
 const TONE0=[1,.99,.955];                             // black and white film is a hair warm; a toned film sets its own
 const TAPES={
@@ -654,7 +653,7 @@ const LOOK={hal:2,bloom:3.5,lift:.05};
 // Picture shapes. The long side follows the way the phone is held: 4:3 is upright 3:4 on an upright phone.
 const SHAPES={"1:1":1,"4:3":4/3,"16:9":16/9};
 const FORMATS={
-  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","400H","P400","GOLD","EKTAR","B&W","CINDRA","SOLANE","LAGRA","ROSEL","NOCTAR","UMBRIN","RUBRA"],pShort:380,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.75,halo:2.1,dsz:1.0,dmg:1.0},
+  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","400H","P400","GOLD","EKTAR","B&W","CINDRA","SOLANE","LAGRA","ROSEL","NOCTAR","UMBRIN","RUBRA","NOIRA"],pShort:380,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.75,halo:2.1,dsz:1.0,dmg:1.0},
   s16:{name:"SUPER 16",aspect:5/3,fps:[24,25],stocks:Object.keys(FILM_STOCKS),pShort:880,gs:.9,grainMul:.6,weave:.32,vig:.24,vexp:1.25,ca:.0014,corner:.012,strip:.13,edge:.030,soft:.55,halo:1.0,dsz:.65,dmg:.6},
   vhs:{name:"VHS",     aspect:4/3,fps:[25,30],stocks:Object.keys(TAPES),      pShort:480}
 };
@@ -679,7 +678,8 @@ const FILM_INFO={
   "CINDRA":["Silver and hard. Drained colour",["#3a3d40","#8a8d90","#d9dadb"]],"SOLANE":["Seventies sun. Faded and golden",["#e0a040","#c9773a","#7a5a30"]],
   "LAGRA":["Cross-processed. Teal and yellow",["#1f8f8a","#e6d04a","#16454f"]],"ROSEL":["Pink haze. Soft and expired",["#e8b0c0","#d9c0b0","#8a6a78"]],
   "NOCTAR":["Blue night. Glowing lights",["#16305f","#3f6fb0","#e8c070"]],"UMBRIN":["Brown and white. Old album",["#3a2a1a","#9a7a55","#e8d8b8"]],
-  "RUBRA":["Loud colour. Deep reds and blues",["#c8202a","#1f4fa8","#e8b830"]]};
+  "RUBRA":["Loud colour. Deep reds and blues",["#c8202a","#1f4fa8","#e8b830"]],
+  "NOIRA":["Hard black and white. Heavy grain",["#0c0c0c","#6a6a6a","#f0f0f0"]]};
 function filmStripes(el,name){const f=FILM_INFO[name];if(!f) return;f[1].forEach((c,i)=>el.style.setProperty("--s"+(i+1),c));}
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
   facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video",lensLook:0,grainAmt:1,halAmt:1,bloomAmt:1,vigAmt:1,breathAmt:1,weaveAmt:1,dmgAmt:1,diffAmt:0,star:0,starAmt:1};
@@ -701,7 +701,7 @@ try{
   if(saved.filter>=0&&saved.filter<FILTERS.length) S.filter=saved.filter|0;
   if(saved.zoomSpeed) S.zoomSpeed=Math.min(2,Math.max(.4,+saved.zoomSpeed||1));
   if(saved.filmFlare===false) S.burn=false;
-  if(saved.lensFlare===false) S.lens=false;
+  S.lens=saved.lensFlare2===true;                      // the redone flare has its own key: an old "on" from the first flare does not carry over
   if(saved.sound===false) S.sound=false;
   if(SHAPES[saved.shape]) S.shape=saved.shape;
   if(saved.histo===true) S.histo=true;
@@ -719,7 +719,7 @@ try{
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot,lensLook:S.lensLook,grainAmt:S.grainAmt,halAmt:S.halAmt,bloomAmt:S.bloomAmt,vigAmt:S.vigAmt,breathAmt:S.breathAmt,weaveAmt:S.weaveAmt,dmgAmt:S.dmgAmt,diffAmt:S.diffAmt,star:S.star,starAmt:S.starAmt}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare2:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot,lensLook:S.lensLook,grainAmt:S.grainAmt,halAmt:S.halAmt,bloomAmt:S.bloomAmt,vigAmt:S.vigAmt,breathAmt:S.breathAmt,weaveAmt:S.weaveAmt,dmgAmt:S.dmgAmt,diffAmt:S.diffAmt,star:S.star,starAmt:S.starAmt}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -923,22 +923,13 @@ void main(){
     vec2 d=p-s;float r=length(d);float P=S.z;
     float wide=P*min(uA,1.);                                                          // the wide haze needs a strong light in a bright scene; in the dark it would fog the whole picture
     float glow=.55*sqrt(P)*exp(-r/.035)+wide*(.26*exp(-r/.10)+.085/(1.+pow(r/.20,2.)));
-    float th=atan(d.y,d.x);
-    float ray=.32*pow(.5+.5*cos(4.*th+.5),12.)+.38*pow(.5+.5*cos(2.*th+2.2),7.)+.30*pow(.5+.5*cos(6.*th+4.1),16.)
-             +.22*pow(.5+.5*cos(3.*th+1.9),9.)+.18*pow(.5+.5*cos(5.*th+5.2),11.)
-             +.22*pow(.5+.5*cos(10.*th+1.),20.)+.16*pow(.5+.5*cos(23.*th+3.3),10.)+.10*pow(.5+.5*cos(37.*th+.7),8.);
-    float rays=ray*.20*exp(-r/(.05+.20*P))*(1.-exp(-r/.014));
-    f+=col*vec3(1.,.90,.74)*(glow+rays)*P*uA;
+    // no drawn rays: a real lens gives a soft veil round the light, and rays only when a star filter is fitted (that is its own control)
+    f+=col*vec3(1.,.90,.74)*glow*.8*P*uA;
     f+=col*vec3(1.,.86,.66)*.026*P*wide*uA;
     float G=pow(P,1.3)*smoothstep(.08,.35,P)*S.w*uA*smoothstep(.04,.2,length(s));   // glints are too weak to throw ghost spots
     if(G>.002){
-      f+=G*col*( ghost(p,s, .42,.034,vec3(1.,.66,.32),.32,.38,.0)
-               + ghost(p,s, .78,.058,vec3(.45,.85,.60),.15,.34,.7)
-               + ghost(p,s,1.00,.022,vec3(1.,.87,.60),.27,.50,.0)
-               + ghost(p,s,1.38,.092,vec3(.60,.52,1.),.11,.30,.8)
-               + ghost(p,s,-.35,.027,vec3(1.,.56,.28),.16,.42,.0)
-               + ghost(p,s,-.62,.105,vec3(.40,.74,.90),.065,.36,.5)
-               + ghost(p,s,1.90,.150,vec3(1.,.74,.46),.05,.40,.9) );
+      f+=G*col*( ghost(p,s, .55,.046,vec3(1.,.72,.42),.15,.48,.0)       // two faint, soft spots across the middle from the light; no row of coloured discs
+               + ghost(p,s,1.22,.105,vec3(.72,.78,.86),.055,.42,.6) );
     }
   }
   f=min(f,vec3(4.));
