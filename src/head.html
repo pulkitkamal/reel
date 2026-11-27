@@ -344,7 +344,7 @@ button.pn:active,.pn button:active{background-color:#1f1f1f}
 #briSl .fk{position:absolute;left:-3px;width:20px;height:1.5px;margin-top:-.75px;background:var(--grn)}
 .r3{height:60px}
 #cam .thumb{flex:0 0 24%;width:auto;height:auto;overflow:hidden;padding:0;border:0;border-radius:4px;display:block}
-.thumb .th{position:absolute;inset:0;background:#111 center/cover no-repeat;display:block}
+.thumb .th{position:absolute;inset:0;background:center/cover no-repeat;display:block;border-radius:6px}
 #cam #clipCount{position:absolute;right:5px;bottom:5px;left:auto;top:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:rgba(0,0,0,.6);color:var(--hi);font-size:11.5px;line-height:18px;font-weight:400;text-align:center}
 .clipsbtn:not(.has) #clipCount{background:none;color:var(--dim)}
 #cam .deck .key{flex:1;min-width:0;height:auto;width:auto;border:0;border-radius:4px;display:block;text-align:left;font-size:12.5px;font-weight:300;color:var(--tx)}
@@ -416,9 +416,12 @@ button.pn:active,.pn button:active{background-color:#1f1f1f}
 .pn{border-radius:6px;box-shadow:inset 0 0 0 1px var(--edge)}
 #view{border-radius:6px}
 #cam #pic::after{border-radius:6px}
-.picname{position:absolute;left:10px;bottom:6px;max-width:72%;padding:4px 6px;background:none;color:rgba(255,255,255,.62);font-family:var(--sans);font-size:44px;line-height:1;font-weight:300;letter-spacing:-.01em;text-transform:lowercase;text-align:left;white-space:nowrap;text-shadow:0 1px 10px rgba(0,0,0,.35)}
+.picname{position:absolute;left:10px;bottom:6px;max-width:72%;padding:4px 6px;background:none;color:rgba(255,255,255,.62);font-family:var(--sans);font-size:44px;line-height:1;font-weight:300;letter-spacing:-.01em;text-transform:lowercase;text-align:left;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.55),0 0 14px rgba(0,0,0,.45)}
 .picname sup{font-size:.42em;line-height:1;vertical-align:top;position:relative;top:-.08em;margin-left:.12em;font-weight:300}
 .picname:active{opacity:.6}
+.picname.flash{color:rgba(255,255,255,.95);transition:none}
+.picname{transition:color .9s ease-out}
+#cam .filmtag{display:none}                             /* the pop-up name tag is retired: the name on the picture does its job */
 #cam .torch{left:auto;top:auto;right:6px;bottom:6px}
 #cam.carded .picname,#cam.bare .picname{display:none}
 #cam.rolling .picname{pointer-events:none;color:rgba(255,255,255,.4)}

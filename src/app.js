@@ -2022,6 +2022,7 @@ hold($("zoomW"),-1);hold($("zoomT"),1);
 /* ---------- swipe on the viewfinder to change film ---------- */
 let tagT=0;
 function showFilmTag(dir){
+  {const pn=$("picName");pn.classList.add("flash");void pn.offsetWidth;setTimeout(()=>pn.classList.remove("flash"),60);}   // the name on the picture lights up for a moment
   const tag=$("filmTag"),list=FORMATS[S.format].stocks,dots=$("filmTagDots");
   $("filmTagName").textContent=nameOf(S.stock);
   if(dots.children.length!==list.length){dots.textContent="";for(let k=0;k<list.length;k++) dots.append(document.createElement("i"));}
