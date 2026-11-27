@@ -1268,7 +1268,7 @@ function syncFaders(){
   const k=S.ev+"|"+S.zoom.toFixed(3)+"|"+(CZ.ok?1:0)+mode;if(k===fadeSeen) return;fadeSeen=k;
   $("zoomHow").textContent=mode!=="live"?"":CZ.ok?"phone zoom":S.zoom>1.02?"enlarged":"";
   $("briKnob").style.top=((3-S.ev)/6*100)+"%";$("briSl").setAttribute("aria-valuenow",S.ev);
-  const zk=$("zoomKnob");zk.style.left=((S.zoom-1)/3*100)+"%";zk.textContent=(Math.abs(S.zoom-Math.round(S.zoom))<.05?Math.round(S.zoom):S.zoom.toFixed(1))+"x";$("zoomSl").setAttribute("aria-valuenow",+S.zoom.toFixed(1));
+  $("zoomGrip").style.left=((S.zoom-1)/3*100)+"%";const zk=$("zoomKnob");zk.textContent=(Math.abs(S.zoom-Math.round(S.zoom))<.05?Math.round(S.zoom):S.zoom.toFixed(1))+"x";$("zoomSl").setAttribute("aria-valuenow",+S.zoom.toFixed(1));
 }
 function showEvFigure(){$("evRead").textContent=(S.ev<0?"−":"+")+Math.abs(S.ev).toFixed(1);}
 function fader(el,vert,get,put,home){
@@ -1838,6 +1838,7 @@ function showFilmInStrip(smooth){                    // bring the film in use in
 }
 function paint(){
   const isVhs=S.format==="vhs",live=mode==="live";
+  {const no=FORMATS[S.format].stocks.indexOf(S.stock)+1;$("filmNo").textContent=no;$("picNo").textContent=no;$("picNameT").textContent=nameOf(S.stock);}
   $("stockBtn").textContent=nameOf(S.stock);$("stockBtn").setAttribute("aria-label","Film in the camera: "+nameOf(S.stock)+". Press to change it");
   $("filmSub").textContent=FILM_INFO[S.stock]?FILM_INFO[S.stock][0].replace(". ",", "):"";
   $("trigLabel").textContent=recording?"Stop":S.shoot==="photo"?"Photo":"Record";
@@ -1895,7 +1896,7 @@ function paint(){
 }
 function showBoard(which){                           // what the board under the picture shows: the camera's own panels, the films, or the lab
   $("mainBoard").hidden=which!=="main";$("filmSheet").hidden=which!=="films";$("labBoard").hidden=which!=="lab";
-  $("cam").classList.toggle("labon",which==="lab");$("settingsBtn").setAttribute("aria-pressed",which==="lab");
+  $("cam").classList.toggle("labon",which==="lab");$("cam").classList.toggle("filmson",which==="films");$("settingsBtn").setAttribute("aria-pressed",which==="lab");
   $("settingsBtn").setAttribute("aria-label",which==="lab"?"Close the lab":"Lab: lens look, star filter, diffusion, bloom, grain and more");
 }
 function filmSheet(on){
@@ -1917,6 +1918,7 @@ $("fpsTap").onclick=()=>$("fpsBtn").click();
   fc.addEventListener("click",e=>{if(at&&at.done){e.stopImmediatePropagation();e.preventDefault();}at=null;},true);
 }
 $("stockBtn").onclick=()=>filmSheet(true);
+$("picName").onclick=()=>filmSheet($("filmSheet").hidden);
 $("filmLabel").onclick=e=>{if(e.target.id!=="stockBtn") filmSheet(true);};   // the whole label is the button
 $("filmClose").onclick=()=>filmSheet(false);
 $("shapeSeg").onclick=e=>{
@@ -2042,7 +2044,7 @@ function stepStock(dir){
   const fd=$("finder");let sw=null,two=null;const pts=new Map();
   const gap=()=>{const [a,b]=[...pts.values()];return Math.hypot(a.x-b.x,a.y-b.y)||1;};
   fd.addEventListener("pointerdown",e=>{
-    if(e.button>0||(e.target.closest&&e.target.closest(".card,.chip,.bar,.shape,.fader,.labbtn,.torch,#evRead"))) return;
+    if(e.button>0||(e.target.closest&&e.target.closest(".card,.chip,.bar,.shape,.fader,.picname,.torch,#evRead"))) return;
     pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     try{fd.setPointerCapture(e.pointerId);}catch(x){}
     if(pts.size===2){sw=null;zoomGoal=null;two={d:gap(),z:S.zoom};$("zoomRead").classList.remove("off");return;}   // a second finger: this is a pinch, not a swipe

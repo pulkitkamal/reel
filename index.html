@@ -369,7 +369,7 @@ button.pn:active,.pn button:active{background-color:#1f1f1f}
 #cam.photo .shoot>b{background:var(--hi)}
 #cam.rolling #shapeSeg,#cam.rolling #soundKey,#cam.rolling .filmcard,#cam.rolling .flipbtn,#cam.rolling .mode,#cam.rolling .thumb,#cam.rolling #fpsTap{opacity:.35}
 #cam.carded .deck{visibility:hidden}
-@media (max-height:700px){.board{height:148px}.r2{height:104px}.r3{height:54px}.r1{height:40px}#shapeSeg button{height:40px}#zoomSl .ft{top:23px}.filmcard{padding-bottom:10px}.filmcard .pg{margin-top:7px}}
+@media (max-height:700px){.board{height:148px}.r2{height:104px}.r3{height:54px}.r1{height:40px}#shapeSeg button{height:40px}#zoomSl .ft{top:23px}#zoomSl .fk.grip{height:18px;margin-top:-9px}.filmcard{padding-bottom:10px}.filmcard .pg{margin-top:7px}}
 @media (max-width:359px){#shapeSeg button{font-size:13.5px}#cam .thumb{flex-basis:20%}#cam .shoot{flex-basis:25%}#cam #evRead{left:0;font-size:14.5px}#briSl .ft{right:8px}#fpsTap::before{display:none}#recTime{left:10px}#cam #stockBtn{font-size:17px}#recTime,#cam #fpsRead,#cam #evRead{font-size:15.5px}.key{font-size:12.5px}.key span{left:10px}.key svg{left:9px}#fpsTap{padding-left:9px;padding-right:6px}}
 @media (orientation:landscape) and (max-height:540px){
   #cam{grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr);grid-template-areas:"finder deck"}
@@ -418,6 +418,61 @@ button.pn:active,.pn button:active{background-color:#1f1f1f}
 #zoomHow{position:absolute;right:10px;top:6px;font-size:10.5px;line-height:1;font-weight:300;color:var(--dim);text-transform:lowercase;pointer-events:none}
 :root{--ticks:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 120' preserveAspectRatio='none'%3E%3Cg fill='none' stroke-width='1.5' vector-effect='non-scaling-stroke'%3E%3Cpath stroke='%238a8a8a' vector-effect='non-scaling-stroke' d='M0 .75h14M0 20.5h14M0 40.25h14M0 60h14M0 79.75h14M0 99.5h14M0 119.25h14'/%3E%3Cpath stroke='%23474747' stroke-width='1' vector-effect='non-scaling-stroke' d='M4 10.6h7M4 30.4h7M4 50.1h7M4 69.9h7M4 89.6h7M4 109.4h7'/%3E%3C/g%3E%3C/svg%3E")}
 @media (display-mode:standalone){html,body{height:100vh}}
+
+/* ================= v3 (his design): the film's name on the picture, a gear for the lab, raised keys, sliders with a grip, orange for what is chosen ================= */
+:root{--sel:#f0762b;--pn:#1b1b1b;--edge:#2a2a2a;--keyb:#262626;--keye:#3b3b3b}
+.pn{border-radius:6px;box-shadow:inset 0 0 0 1px var(--edge)}
+#view{border-radius:6px}
+#cam #pic::after{border-radius:6px}
+.picname{position:absolute;left:10px;bottom:6px;max-width:72%;padding:4px 6px;background:none;color:rgba(255,255,255,.62);font-family:var(--sans);font-size:44px;line-height:1;font-weight:300;letter-spacing:-.01em;text-transform:lowercase;text-align:left;white-space:nowrap;text-shadow:0 1px 10px rgba(0,0,0,.35)}
+.picname sup{font-size:.42em;line-height:1;vertical-align:top;position:relative;top:-.08em;margin-left:.12em;font-weight:300}
+.picname:active{opacity:.6}
+#cam .torch{left:auto;top:auto;right:6px;bottom:6px}
+#cam.carded .picname,#cam.bare .picname{display:none}
+#cam.rolling .picname{pointer-events:none;color:rgba(255,255,255,.4)}
+.boards{position:relative;flex:none;min-width:0}
+/* the gear keeps its place whatever the board shows; with the lab open it becomes one tall key that closes it */
+.gear{position:absolute;left:0;top:0;z-index:2;width:44px;height:44px;display:grid;place-items:center;color:#7d7d7d}
+.r1{padding-left:48px}
+#labBoard{padding-left:48px}
+#cam.labon .gear{height:100%}
+#cam.filmson .gear{display:none}
+.gear:active{background:#232323}
+#cam.labon .gear{color:var(--sel);background:var(--keyb);box-shadow:inset 0 0 0 1px var(--keye),0 2px 6px rgba(0,0,0,.5)}
+#shapeSeg{flex:0 0 40%;padding:2px;gap:0}
+#cam #shapeSeg button{height:auto;border-radius:5px}
+#cam #shapeSeg button[aria-pressed="true"],.deck .mode .mkey[aria-pressed="true"]{color:var(--sel);background:var(--keyb);box-shadow:inset 0 0 0 1px var(--keye),0 2px 6px rgba(0,0,0,.5)}
+/* sliders: a small label that stays, a scale, and a grip you push */
+#zoomSl .zlab{position:absolute;left:14px;top:5px;font-size:10.5px;line-height:1;font-weight:400;color:var(--grn)}
+#zoomSl .ft{left:22px;right:24px;top:25px;height:10px}
+.grip{position:absolute;border-radius:5px;background:linear-gradient(180deg,#3a4a3f,#232b26);box-shadow:inset 0 0 0 1px #4b5a50,inset 0 1px 0 rgba(255,255,255,.12),0 2px 5px rgba(0,0,0,.6)}
+#zoomSl .fk.grip{top:50%;width:18px;height:20px;margin:-10px 0 0 -9px;transform:none}
+#zoomSl .fk.grip::after{display:none}
+#briSl .fk{left:50%;width:22px;height:20px;margin:-10px 0 0 -11px;border-radius:5px;background:linear-gradient(180deg,#3a4a3f,#232b26);box-shadow:inset 0 0 0 1px #4b5a50,inset 0 1px 0 rgba(255,255,255,.12),0 2px 5px rgba(0,0,0,.6)}
+.lp.fader .fk{left:50%;width:20px;height:14px;margin:-7px 0 0 -10px;border-radius:4px;background:linear-gradient(180deg,#3a4a3f,#232b26);box-shadow:inset 0 0 0 1px #4b5a50,inset 0 1px 0 rgba(255,255,255,.12),0 2px 4px rgba(0,0,0,.6)}
+.fader.held .fk{box-shadow:inset 0 0 0 1px var(--grn),0 2px 5px rgba(0,0,0,.6)}
+/* film card */
+.filmcard .ic,#briSl .ic{color:#6f6f6f}
+.filmcard .nmrow{display:flex;align-items:flex-start;max-width:100%}
+#filmNo{font-size:10px;line-height:1;font-weight:300;color:var(--tx);margin:1px 0 0 3px}
+#cam #stockBtn{color:var(--hi)}
+/* bottom row */
+#cam .thumb{order:0;flex:0 0 22%}
+.deck .mode{flex:1;display:flex;gap:2px;padding:4px;min-width:0}
+.deck .mode .mkey{position:relative;flex:1;min-width:0;border-radius:5px;background:none;color:var(--tx);font-family:var(--sans);font-size:12.5px;font-weight:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.deck .mode .mkey svg{color:#6e6e6e}
+.deck .mode .mkey[aria-pressed="true"] svg{color:var(--sel)}
+#cam .deck .flipbtn{flex:0 0 15%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center}
+.deck .flipbtn svg,.deck .flipbtn span{position:static}
+#cam .shoot{flex:0 0 27%}
+/* what is chosen is orange, in the boards too */
+.lp.seg3 button[aria-pressed="true"]{color:var(--sel)}
+#cam #filmSheet .film[aria-pressed="true"] canvas{outline-color:var(--sel)}
+#cam #filmSheet .film[aria-pressed="true"] .code{color:var(--sel)}
+.lk[aria-pressed="true"] .go b{color:var(--sel)}
+@media (max-height:700px){.gear{height:40px}#cam.labon .gear{height:100%}}
+@media (max-width:359px){.picname{font-size:36px}#shapeSeg{flex-basis:44%}#cam .deck .flipbtn{flex-basis:15%}#cam .thumb{flex-basis:20%}#cam .shoot{flex-basis:27%}}
+@media (orientation:landscape) and (max-height:540px){.picname{font-size:36px}.gear{height:40px}#cam.labon .gear{height:100%}}
 /* sheets, in the same hand */
 .sheet{background:#0f0f0f;border-top:1px solid var(--ln);gap:12px}
 .sheet h2{font-family:var(--sans);font-stretch:normal;font-size:21px;font-weight:500;letter-spacing:0;text-transform:lowercase;color:var(--hi)}
@@ -457,7 +512,7 @@ input[type=range]{accent-color:var(--grn)}
   <main class="finder" id="finder">
     <canvas id="view" width="1080" height="1440"></canvas>
     <div id="pic">
-      <button class="labbtn" id="settingsBtn" aria-label="Lab: lens look, grain, light, sound and other settings">lab</button>
+      <button class="picname" id="picName" aria-label="Film in the camera. Press to change it"><span id="picNameT">islands</span><sup id="picNo">3</sup></button>
       <button class="torch" id="torchBtn" aria-pressed="false" aria-label="Light"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><circle cx="4.20" cy="9.40" r="0.62"/><circle cx="4.20" cy="12.00" r="0.64"/><circle cx="4.20" cy="14.60" r="0.62"/><circle cx="6.80" cy="6.80" r="0.66"/><circle cx="6.80" cy="9.40" r="0.73"/><circle cx="6.80" cy="12.00" r="0.76"/><circle cx="6.80" cy="14.60" r="0.73"/><circle cx="6.80" cy="17.20" r="0.66"/><circle cx="9.40" cy="4.20" r="0.62"/><circle cx="9.40" cy="6.80" r="0.73"/><circle cx="9.40" cy="9.40" r="0.83"/><circle cx="9.40" cy="12.00" r="0.88"/><circle cx="9.40" cy="14.60" r="0.83"/><circle cx="9.40" cy="17.20" r="0.73"/><circle cx="9.40" cy="19.80" r="0.62"/><circle cx="12.00" cy="4.20" r="0.64"/><circle cx="12.00" cy="6.80" r="0.76"/><circle cx="12.00" cy="9.40" r="0.88"/><circle cx="12.00" cy="12.00" r="1.00"/><circle cx="12.00" cy="14.60" r="0.88"/><circle cx="12.00" cy="17.20" r="0.76"/><circle cx="12.00" cy="19.80" r="0.64"/><circle cx="14.60" cy="4.20" r="0.62"/><circle cx="14.60" cy="6.80" r="0.73"/><circle cx="14.60" cy="9.40" r="0.83"/><circle cx="14.60" cy="12.00" r="0.88"/><circle cx="14.60" cy="14.60" r="0.83"/><circle cx="14.60" cy="17.20" r="0.73"/><circle cx="14.60" cy="19.80" r="0.62"/><circle cx="17.20" cy="6.80" r="0.66"/><circle cx="17.20" cy="9.40" r="0.73"/><circle cx="17.20" cy="12.00" r="0.76"/><circle cx="17.20" cy="14.60" r="0.73"/><circle cx="17.20" cy="17.20" r="0.66"/><circle cx="19.80" cy="9.40" r="0.62"/><circle cx="19.80" cy="12.00" r="0.64"/><circle cx="19.80" cy="14.60" r="0.62"/></svg></button>
     </div>
     <div hidden><span id="zoomRead"></span><span id="rlEv"></span><span id="rlZoom"></span><span id="rlTime"></span><span id="fpsWrap"></span><header id="bar"></header></div>
@@ -476,13 +531,15 @@ input[type=range]{accent-color:var(--grn)}
   </main>
 
   <footer class="deck">
+    <div class="boards">
+      <button class="pn gear" id="settingsBtn" aria-pressed="false" aria-label="Lab: lens look, star filter, diffusion, bloom, grain and more"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.700 1l-2.400-1-2 3.400 2 1.600a7.500 7.500 0 0 0 0 2l-2 1.600 2 3.400 2.400-1a7.600 7.600 0 0 0 1.700 1l.4 2.500h4l.4-2.500a7.600 7.600 0 0 0 1.700-1l2.400 1 2-3.400zM13 15.200a3.200 3.200 0 1 1 0-6.400 3.200 3.200 0 0 1 0 6.400z" transform="translate(-1 0)"/></svg></button>
     <div class="board" id="mainBoard">
     <div class="dr r1">
       <div class="pn shape" id="shapeSeg" role="group" aria-label="Picture shape"><button data-v="1:1">1:1</button><button data-v="4:3">4:3</button><button data-v="16:9">16:9</button></div>
-      <div class="pn fader h" id="zoomSl" role="slider" tabindex="0" aria-label="Zoom. Slide right to come closer. Tap twice for no zoom" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><i class="ft"></i><b class="fk num" id="zoomKnob">1x</b><small id="zoomHow"></small></div>
+      <div class="pn fader h" id="zoomSl" role="slider" tabindex="0" aria-label="Zoom. Slide right to come closer. Tap twice for no zoom" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><b class="num zlab" id="zoomKnob">1x</b><i class="ft"></i><b class="fk grip" id="zoomGrip"></b><small id="zoomHow"></small></div>
     </div>
     <div class="dr r2">
-      <div class="pn filmcard" id="filmLabel"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="5.6" r="2.6"/><circle cx="12" cy="18.4" r="2.6"/><circle cx="6.5" cy="8.8" r="2.6"/><circle cx="17.5" cy="8.8" r="2.6"/><circle cx="6.5" cy="15.2" r="2.6"/><circle cx="17.5" cy="15.2" r="2.6"/></svg></span><button class="code" id="stockBtn" aria-label="Film in the camera">islands</button><span class="sub" id="filmSub">Indoor light</span><span class="pg" id="filmPg" aria-hidden="true"><i></i><i></i><i></i></span></div>
+      <div class="pn filmcard" id="filmLabel"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="5.6" r="2.6"/><circle cx="12" cy="18.4" r="2.6"/><circle cx="6.5" cy="8.8" r="2.6"/><circle cx="17.5" cy="8.8" r="2.6"/><circle cx="6.5" cy="15.2" r="2.6"/><circle cx="17.5" cy="15.2" r="2.6"/></svg></span><span class="nmrow"><button class="code" id="stockBtn" aria-label="Film in the camera">islands</button><sup id="filmNo">3</sup></span><span class="sub" id="filmSub">Indoor light</span><span class="pg" id="filmPg" aria-hidden="true"><i></i><i></i><i></i></span></div>
       <div class="mid">
         <div class="pn clock"><div class="rec" id="recLamp" hidden><i></i></div><span class="num" id="recTime">00:00:00</span><button id="fpsTap" aria-label="Film speed. Press to change"><b class="num" id="fpsRead">18</b><small>fps</small></button></div>
         <div class="pn hist" id="histBox" title="Brightness spread, dark on the left, bright on the right"><canvas id="histo" width="432" height="150" role="img" aria-label="Brightness of the picture: dark on the left, bright on the right"></canvas></div>
@@ -509,10 +566,11 @@ input[type=range]{accent-color:var(--grn)}
         <button class="pn lp sw" id="aboutBtn" aria-label="About this camera: zoom, colour tables and credits"><b>i</b><span class="nm">about</span></button>
       </div>
     </div>
+    </div>
     <div class="dr r3">
       <button class="pn thumb clipsbtn" id="galleryBtn" aria-label="Open clips"><i class="th" id="rollThumb" aria-hidden="true"></i><b class="num" id="clipCount">0</b></button>
+      <div class="pn mode" id="modeSeg" role="group" aria-label="Photo or video"><button class="mkey" data-v="photo"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M9 4 7.6 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.6L15 4z"/><circle cx="12" cy="12.5" r="3.4" fill="#161616"/></svg><span>photo</span></button><button class="mkey" data-v="video"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M10 9v6l5-3z" fill="#161616"/></svg><span>video</span></button></div>
       <button class="pn key flipbtn" id="flipBtn" aria-label="Turn to the other camera"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M9 4 7.6 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.6L15 4z"/><path d="M8.6 12.2a3.5 3.5 0 0 1 6-2l.9-.9v3h-3l1.1-1.1a2.1 2.1 0 0 0-3.6 1zM15.4 12.9a3.5 3.5 0 0 1-6 2l-.9.9v-3h3l-1.1 1.1a2.1 2.1 0 0 0 3.6-1z" fill="#161616"/></svg><span>flip</span></button>
-      <div class="mode" id="modeSeg" role="group" aria-label="Photo or video"><button class="pn key" data-v="photo"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M9 4 7.6 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.6L15 4z"/><circle cx="12" cy="12.5" r="3.4" fill="#161616"/></svg><span>photo</span></button><button class="pn key" data-v="video"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M10 9v6l5-3z" fill="#161616"/></svg><span>video</span></button></div>
       <button class="pn shoot trigger" id="trigger" aria-pressed="false" aria-label="Start recording"><b></b><span class="kl" id="trigLabel">Record</span></button>
     </div>
   </footer>
@@ -1878,7 +1936,7 @@ function syncFaders(){
   const k=S.ev+"|"+S.zoom.toFixed(3)+"|"+(CZ.ok?1:0)+mode;if(k===fadeSeen) return;fadeSeen=k;
   $("zoomHow").textContent=mode!=="live"?"":CZ.ok?"phone zoom":S.zoom>1.02?"enlarged":"";
   $("briKnob").style.top=((3-S.ev)/6*100)+"%";$("briSl").setAttribute("aria-valuenow",S.ev);
-  const zk=$("zoomKnob");zk.style.left=((S.zoom-1)/3*100)+"%";zk.textContent=(Math.abs(S.zoom-Math.round(S.zoom))<.05?Math.round(S.zoom):S.zoom.toFixed(1))+"x";$("zoomSl").setAttribute("aria-valuenow",+S.zoom.toFixed(1));
+  $("zoomGrip").style.left=((S.zoom-1)/3*100)+"%";const zk=$("zoomKnob");zk.textContent=(Math.abs(S.zoom-Math.round(S.zoom))<.05?Math.round(S.zoom):S.zoom.toFixed(1))+"x";$("zoomSl").setAttribute("aria-valuenow",+S.zoom.toFixed(1));
 }
 function showEvFigure(){$("evRead").textContent=(S.ev<0?"−":"+")+Math.abs(S.ev).toFixed(1);}
 function fader(el,vert,get,put,home){
@@ -2448,6 +2506,7 @@ function showFilmInStrip(smooth){                    // bring the film in use in
 }
 function paint(){
   const isVhs=S.format==="vhs",live=mode==="live";
+  {const no=FORMATS[S.format].stocks.indexOf(S.stock)+1;$("filmNo").textContent=no;$("picNo").textContent=no;$("picNameT").textContent=nameOf(S.stock);}
   $("stockBtn").textContent=nameOf(S.stock);$("stockBtn").setAttribute("aria-label","Film in the camera: "+nameOf(S.stock)+". Press to change it");
   $("filmSub").textContent=FILM_INFO[S.stock]?FILM_INFO[S.stock][0].replace(". ",", "):"";
   $("trigLabel").textContent=recording?"Stop":S.shoot==="photo"?"Photo":"Record";
@@ -2505,7 +2564,7 @@ function paint(){
 }
 function showBoard(which){                           // what the board under the picture shows: the camera's own panels, the films, or the lab
   $("mainBoard").hidden=which!=="main";$("filmSheet").hidden=which!=="films";$("labBoard").hidden=which!=="lab";
-  $("cam").classList.toggle("labon",which==="lab");$("settingsBtn").setAttribute("aria-pressed",which==="lab");
+  $("cam").classList.toggle("labon",which==="lab");$("cam").classList.toggle("filmson",which==="films");$("settingsBtn").setAttribute("aria-pressed",which==="lab");
   $("settingsBtn").setAttribute("aria-label",which==="lab"?"Close the lab":"Lab: lens look, star filter, diffusion, bloom, grain and more");
 }
 function filmSheet(on){
@@ -2527,6 +2586,7 @@ $("fpsTap").onclick=()=>$("fpsBtn").click();
   fc.addEventListener("click",e=>{if(at&&at.done){e.stopImmediatePropagation();e.preventDefault();}at=null;},true);
 }
 $("stockBtn").onclick=()=>filmSheet(true);
+$("picName").onclick=()=>filmSheet($("filmSheet").hidden);
 $("filmLabel").onclick=e=>{if(e.target.id!=="stockBtn") filmSheet(true);};   // the whole label is the button
 $("filmClose").onclick=()=>filmSheet(false);
 $("shapeSeg").onclick=e=>{
@@ -2652,7 +2712,7 @@ function stepStock(dir){
   const fd=$("finder");let sw=null,two=null;const pts=new Map();
   const gap=()=>{const [a,b]=[...pts.values()];return Math.hypot(a.x-b.x,a.y-b.y)||1;};
   fd.addEventListener("pointerdown",e=>{
-    if(e.button>0||(e.target.closest&&e.target.closest(".card,.chip,.bar,.shape,.fader,.labbtn,.torch,#evRead"))) return;
+    if(e.button>0||(e.target.closest&&e.target.closest(".card,.chip,.bar,.shape,.fader,.picname,.torch,#evRead"))) return;
     pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     try{fd.setPointerCapture(e.pointerId);}catch(x){}
     if(pts.size===2){sw=null;zoomGoal=null;two={d:gap(),z:S.zoom};$("zoomRead").classList.remove("off");return;}   // a second finger: this is a pinch, not a swipe
