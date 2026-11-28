@@ -61,3 +61,5 @@ Halation is the thin red ring that film shows round light strong enough to pass 
 Lens smudge (a ruler in the lab, under wear, off to begin with): dust on the front glass, far out of focus, as pale discs and specks that show only where bright light crosses the glass. The dirt itself is two pictures supplied by Pulkit, laid together and kept inside the page.
 
 The Super 8 picture is worked out 520 points on its short side, with a light blur for the softness of small film.
+
+Finding your way: the keys carry a word (effects, shape, your shots) and the film name carries "change film". After each photo or clip a card shows it for a few seconds, with "view" to open it and save or share. The first time the camera opens, three short tips point at the film name, the effects key and your shots; taps pass straight through them, and About can show them again.

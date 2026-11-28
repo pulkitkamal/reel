@@ -123,6 +123,38 @@ function toast(msg,ms){
   clearTimeout(toastT);toastT=setTimeout(()=>t.classList.add("off"),ms||2600);
 }
 
+/* ---------- the card after a shot: what was taken, and the way to it ---------- */
+let shotT=0;
+function shotCard(title,poster){
+  const c=$("shotCard");$("shotT").textContent=title;$("shotTh").style.backgroundImage=poster?"url("+poster+")":"";
+  $("toast").classList.add("off");c.classList.remove("off");
+  clearTimeout(shotT);shotT=setTimeout(()=>c.classList.add("off"),4500);
+}
+/* ---------- three tips, the first time the camera is opened ---------- */
+// They never get in the way: taps go straight through to the camera, and each tap (or a few seconds) brings the next tip.
+const TIPS=[["picName","Tap the name to change film"],["settingsBtn","Effects: lens, glow, grain, dust"],["galleryBtn","Your photos and clips land here. Open one to save or share it"]];
+let tipI=-1,tipT=0;
+function tipShow(i){
+  clearTimeout(tipT);const box=$("tips");
+  if(i>=TIPS.length){box.hidden=true;tipI=-1;try{localStorage.setItem("reel8tips","1");}catch(e){}return;}
+  const r=$(TIPS[i][0]).getBoundingClientRect(),c=$("cam").getBoundingClientRect();
+  if(!r.width||!r.height){tipShow(i+1);return;}       // the thing it points at is not on the screen just now
+  tipI=i;box.hidden=false;$("tipT").textContent=TIPS[i][1];$("tipN").textContent="tip "+(i+1)+" of "+TIPS.length+" · tap anywhere";
+  const b=$("tipB"),x=Math.max(8,Math.min(r.left-c.left,c.width-b.offsetWidth-8));
+  b.style.left=x+"px";b.style.top=Math.max(8,r.top-c.top-b.offsetHeight-12)+"px";
+  b.style.setProperty("--ax",Math.max(10,Math.min(r.left-c.left+Math.min(r.width/2,28)-x-6,b.offsetWidth-24))+"px");
+  tipT=setTimeout(()=>tipShow(i+1),7000);
+}
+function tipsQuiet(){const k=$("cam").classList;return !k.contains("carded")&&!k.contains("bare")&&!k.contains("labon")&&!k.contains("filmson")&&!k.contains("rolling")&&$("gallery").hidden&&$("settings").hidden;}
+function tipsStart(force){
+  if(tipI>=0) return;
+  if(!force){try{if(localStorage.getItem("reel8tips")) return;}catch(e){return;}}
+  const seen=()=>{try{return !force&&!!localStorage.getItem("reel8tips");}catch(e){return true;}};
+  let n=0;const t=setInterval(()=>{if(tipI>=0||seen()||++n>80){clearInterval(t);return;}if(frames>10&&tipsQuiet()){clearInterval(t);tipShow(0);}},750);   // wait until the camera screen is up and nothing lies over it
+}
+document.addEventListener("pointerdown",()=>{if(tipI>=0) tipShow(tipI+1);},true);
+window.addEventListener("resize",()=>{if(tipI>=0) tipShow(tipI);});
+
 /* ---------- test scene (shown until a camera or clip is ready) ---------- */
 const testCv=document.createElement("canvas");testCv.width=540;testCv.height=720;
 const tctx=testCv.getContext("2d");
@@ -1731,7 +1763,7 @@ function finishRec(){
     label:FORMATS[S.format].name+" "+nameOf(S.stock),fps:S.fps,aspect:cv.width/cv.height,poster:recPoster
   });
   renderClips();
-  toast("Clip ready. Open Clips to watch or save it.",3200);
+  shotCard("Clip ready",recPoster);
 }
 /* ---------- photos ---------- */
 // A photo is the frame on screen, film look and all, kept as a JPEG at the size the picture is drawn.
@@ -1747,7 +1779,7 @@ function takePhoto(){
       name:"reel8-"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"-"+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+"-"+z(Math.floor(d.getMilliseconds()/10)),
       label:film,size,aspect,poster:url});
     renderClips();
-    toast("Photo taken.",1200);
+    shotCard("Photo taken",url);
   };
   try{cv.toBlob(keep,"image/jpeg",.95);}catch(e){keep(null);}
 }
@@ -2109,6 +2141,9 @@ function lutStatus(){
 }
 $("settingsBtn").onclick=()=>labBoard($("labBoard").hidden);
 $("settingsClose").onclick=()=>{$("settings").hidden=true;$("aboutBtn").focus();};
+$("shotCard").onclick=()=>{$("shotCard").classList.add("off");$("galleryBtn").click();};
+$("tipsAgain").onclick=()=>{$("settingsClose").click();if($("cam").classList.contains("labon")) labBoard(false);tipsStart(true);};
+tipsStart(false);
 $("galleryBtn").onclick=()=>{$("gallery").hidden=false;$("galleryClose").focus();};
 $("galleryClose").onclick=()=>{for(const v of $("clips").querySelectorAll("video")) v.pause();$("gallery").hidden=true;$("galleryBtn").focus();};
 // One press on the main screen turns to the other camera. The picture dims for the moment the phone needs.
@@ -2173,7 +2208,7 @@ if(!FRAMED&&"serviceWorker" in navigator&&(location.protocol==="https:"||locatio
 $("homeNote").hidden=!(IS_IOS&&!STANDALONE&&!FRAMED);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={FX,HALO,LENSLOOK,RUL,NAMES,nameOf,get LOOKS(){return LOOKS;},useLook,labBoard,showBoard,syncRulers,LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
+window.__reel8={tipShow,tipsStart,get tipI(){return tipI},FX,HALO,LENSLOOK,RUL,NAMES,nameOf,get LOOKS(){return LOOKS;},useLook,labBoard,showBoard,syncRulers,LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
   get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
   blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";card(false);},snap(){return new Promise(r=>{snapCb=r;});},

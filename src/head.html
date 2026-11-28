@@ -546,6 +546,29 @@ input[type=range]{accent-color:var(--grn)}
 .clip .row button,.primary,.second{border-radius:4px;background:#222;color:var(--hi);font-size:14px;font-weight:400;text-transform:lowercase}
 .primary{background:var(--grn);color:#0a0a0a}
 .toast{font-size:14px;font-weight:400;border-radius:4px}
+
+/* v35: keys that say what they are, a card after each shot, three first-time tips */
+.kl2{position:absolute;left:0;right:0;bottom:4px;font-size:10px;line-height:1;font-weight:400;color:#8a8a8a;text-align:center;pointer-events:none;letter-spacing:.01em}
+.gear svg{transform:translateY(-6px)}
+.shapekey{position:relative}.shapekey b{transform:translateY(-6px)}
+#cam.labon .gear .kl2{color:var(--sel)}
+.kl2.shots{left:8px;right:auto;bottom:7px;font-size:11px;color:#d6d6d6;text-shadow:0 1px 3px #000,0 0 6px rgba(0,0,0,.7);z-index:1}
+.pnhint{display:block;margin-top:3px;font-size:12px;line-height:1;font-weight:400;letter-spacing:.01em;color:rgba(255,255,255,.72);text-shadow:0 1px 3px rgba(0,0,0,.7)}
+#cam.rolling .pnhint,#cam.labon .pnhint,#cam.filmson .pnhint{display:none}
+.shotcard{position:absolute;left:10px;right:10px;top:10px;z-index:5;display:flex;align-items:center;gap:10px;padding:8px;border-radius:12px;background:rgba(27,27,27,.94);color:#eee;text-align:left;box-shadow:0 6px 20px rgba(0,0,0,.45);transition:opacity .25s,transform .25s}
+.shotcard.off{opacity:0;transform:translateY(-8px);pointer-events:none}
+.shotcard i{flex:0 0 40px;height:52px;border-radius:6px;background:#333 center/cover no-repeat}
+.shotcard .st{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.shotcard b{font-size:15px;font-weight:500}
+.shotcard small{font-size:12px;color:#9a9a9a}
+.shotcard em{flex:0 0 auto;font-style:normal;font-size:14px;font-weight:500;color:var(--sel);padding:9px 14px;border-radius:8px;background:#262626}
+#cam.rolling .shotcard{display:none}
+#tips{position:absolute;inset:0;z-index:30;pointer-events:none}
+#cam.bare #tips,#cam.bare .shotcard{display:none}
+.tipb{position:absolute;max-width:230px;padding:9px 12px;border-radius:10px;background:var(--sel);color:#151515;font-size:14px;line-height:1.25;font-weight:500;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.tipb small{display:block;margin-top:3px;font-size:11px;font-weight:400;opacity:.75}
+.tipb::after{content:"";position:absolute;left:var(--ax,20px);bottom:-5px;width:12px;height:12px;background:var(--sel);transform:rotate(45deg)}
+.textbtn{background:none;color:var(--sel);font:inherit;padding:8px 4px}
 </style>
 </head>
 <body>
@@ -554,7 +577,8 @@ input[type=range]{accent-color:var(--grn)}
   <main class="finder" id="finder">
     <canvas id="view" width="1080" height="1440"></canvas>
     <div id="pic">
-      <button class="picname" id="picName" aria-label="Film in the camera. Press to change it"><span id="picNameT">islands</span><sup id="picNo">3</sup></button>
+      <button class="picname" id="picName" aria-label="Film in the camera. Press to change it"><span id="picNameT">islands</span><sup id="picNo">3</sup><span class="pnhint" id="picHint">change film ›</span></button>
+      <button class="shotcard off" id="shotCard" aria-label="Open your shots to save or share this one"><i id="shotTh" aria-hidden="true"></i><span class="st"><b id="shotT">Photo taken</b><small>open it to save or share</small></span><em>view</em></button>
         <div class="histov" id="histBox" hidden title="Brightness spread, dark on the left, bright on the right"><canvas id="histo" width="432" height="150" role="img" aria-label="Brightness of the picture: dark on the left, bright on the right"></canvas></div>
       <button class="torch" id="torchBtn" aria-pressed="false" aria-label="Light"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><circle cx="4.20" cy="9.40" r="0.62"/><circle cx="4.20" cy="12.00" r="0.64"/><circle cx="4.20" cy="14.60" r="0.62"/><circle cx="6.80" cy="6.80" r="0.66"/><circle cx="6.80" cy="9.40" r="0.73"/><circle cx="6.80" cy="12.00" r="0.76"/><circle cx="6.80" cy="14.60" r="0.73"/><circle cx="6.80" cy="17.20" r="0.66"/><circle cx="9.40" cy="4.20" r="0.62"/><circle cx="9.40" cy="6.80" r="0.73"/><circle cx="9.40" cy="9.40" r="0.83"/><circle cx="9.40" cy="12.00" r="0.88"/><circle cx="9.40" cy="14.60" r="0.83"/><circle cx="9.40" cy="17.20" r="0.73"/><circle cx="9.40" cy="19.80" r="0.62"/><circle cx="12.00" cy="4.20" r="0.64"/><circle cx="12.00" cy="6.80" r="0.76"/><circle cx="12.00" cy="9.40" r="0.88"/><circle cx="12.00" cy="12.00" r="1.00"/><circle cx="12.00" cy="14.60" r="0.88"/><circle cx="12.00" cy="17.20" r="0.76"/><circle cx="12.00" cy="19.80" r="0.64"/><circle cx="14.60" cy="4.20" r="0.62"/><circle cx="14.60" cy="6.80" r="0.73"/><circle cx="14.60" cy="9.40" r="0.83"/><circle cx="14.60" cy="12.00" r="0.88"/><circle cx="14.60" cy="14.60" r="0.83"/><circle cx="14.60" cy="17.20" r="0.73"/><circle cx="14.60" cy="19.80" r="0.62"/><circle cx="17.20" cy="6.80" r="0.66"/><circle cx="17.20" cy="9.40" r="0.73"/><circle cx="17.20" cy="12.00" r="0.76"/><circle cx="17.20" cy="14.60" r="0.73"/><circle cx="17.20" cy="17.20" r="0.66"/><circle cx="19.80" cy="9.40" r="0.62"/><circle cx="19.80" cy="12.00" r="0.64"/><circle cx="19.80" cy="14.60" r="0.62"/></svg></button>
     </div>
@@ -575,10 +599,10 @@ input[type=range]{accent-color:var(--grn)}
 
   <footer class="deck">
     <div class="boards">
-      <button class="pn gear" id="settingsBtn" aria-pressed="false" aria-label="Lab: lens look, star filter, diffusion, bloom, grain and more"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.700 1l-2.400-1-2 3.400 2 1.600a7.500 7.500 0 0 0 0 2l-2 1.600 2 3.400 2.400-1a7.600 7.600 0 0 0 1.700 1l.4 2.500h4l.4-2.500a7.600 7.600 0 0 0 1.700-1l2.400 1 2-3.400zM13 15.200a3.200 3.200 0 1 1 0-6.400 3.200 3.200 0 0 1 0 6.400z" transform="translate(-1 0)"/></svg></button>
+      <button class="pn gear" id="settingsBtn" aria-pressed="false" aria-label="Effects: lens look, star filter, diffusion, bloom, grain and more"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.4"/><circle cx="8" cy="17" r="2.4"/></svg><span class="kl2">effects</span></button>
     <div class="board" id="mainBoard">
     <div class="dr r1">
-      <button class="pn shapekey" id="shapeKey" aria-label="Picture shape. Press to change"><b class="num" id="shapeNow">4:3</b></button>
+      <button class="pn shapekey" id="shapeKey" aria-label="Picture shape. Press to change"><b class="num" id="shapeNow">4:3</b><span class="kl2">shape</span></button>
       <div class="pn fader h" id="zoomSl" role="slider" tabindex="0" aria-label="Zoom. Slide right to come closer. Tap twice for no zoom" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><b class="num zlab" id="zoomKnob">1x</b><i class="ft"></i><b class="fk grip" id="zoomGrip"></b><small id="zoomHow"></small></div>
     </div>
     <div class="dr r2">
@@ -600,12 +624,13 @@ input[type=range]{accent-color:var(--grn)}
     </div>
     </div>
     <div class="dr r3">
-      <button class="pn thumb clipsbtn" id="galleryBtn" aria-label="Open clips"><i class="th" id="rollThumb" aria-hidden="true"></i><b class="num" id="clipCount">0</b></button>
+      <button class="pn thumb clipsbtn" id="galleryBtn" aria-label="Your shots: watch, save or share your photos and clips"><i class="th" id="rollThumb" aria-hidden="true"></i><span class="kl2 shots">your shots</span><b class="num" id="clipCount">0</b></button>
       <div class="pn mode" id="modeSeg" role="group" aria-label="Photo or video"><button class="mkey" data-v="photo"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M9 4 7.6 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.6L15 4z"/><circle cx="12" cy="12.5" r="3.4" fill="#161616"/></svg><span>photo</span></button><button class="mkey" data-v="video"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M10 9v6l5-3z" fill="#161616"/></svg><span>video</span></button></div>
       <button class="pn key flipbtn" id="flipBtn" aria-label="Turn to the other camera"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M9 4 7.6 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.6L15 4z"/><path d="M8.6 12.2a3.5 3.5 0 0 1 6-2l.9-.9v3h-3l1.1-1.1a2.1 2.1 0 0 0-3.6 1zM15.4 12.9a3.5 3.5 0 0 1-6 2l-.9.9v-3h3l-1.1 1.1a2.1 2.1 0 0 0 3.6-1z" fill="#161616"/></svg><span>flip</span></button>
       <button class="pn shoot trigger" id="trigger" aria-pressed="false" aria-label="Start recording"><b></b><span class="kl" id="trigLabel">Record</span></button>
     </div>
   </footer>
+  <div id="tips" hidden aria-live="polite"><div class="tipb" id="tipB"><span id="tipT"></span><small id="tipN"></small></div></div>
   <div hidden id="oldMain">
       <div class="pn shape" id="shapeSeg" role="group" aria-label="Picture shape"><button data-v="1:1">1:1</button><button data-v="4:3">4:3</button><button data-v="16:9">16:9</button></div>
       <div class="pn filmcard" id="filmLabel"><span class="ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="5.6" r="2.6"/><circle cx="12" cy="18.4" r="2.6"/><circle cx="6.5" cy="8.8" r="2.6"/><circle cx="17.5" cy="8.8" r="2.6"/><circle cx="6.5" cy="15.2" r="2.6"/><circle cx="17.5" cy="15.2" r="2.6"/></svg></span><span class="nmrow"><button class="code" id="stockBtn" aria-label="Film in the camera">islands</button><sup id="filmNo">3</sup></span><span class="sub" id="filmSub">Indoor light</span><span class="pg" id="filmPg" aria-hidden="true"><i></i><i></i><i></i></span></div>
@@ -655,6 +680,7 @@ input[type=range]{accent-color:var(--grn)}
     <p class="note" id="camStatus"></p>
     <p class="note" id="lutStatus"></p>
     <p class="note" id="credit">Some film colours use tables made with <a href="https://github.com/andreavolpato/spektrafilm" target="_blank" rel="noopener">spektrafilm</a> by Andrea Volpato (<a href="https://github.com/andreavolpato/spektrafilm/blob/main/SPEKTRAFILM_LICENSE.txt" target="_blank" rel="noopener">CC BY-SA 4.0</a>).</p>
+    <div class="field"><span>The three first-time tips</span><button class="textbtn" id="tipsAgain">show again</button></div>
     <p class="note" id="homeNote" hidden>For a bigger picture, put this page on your Home Screen: press Share, then Add to Home Screen, and open it from there.</p>
   </section>
 
