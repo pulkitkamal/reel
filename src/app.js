@@ -43,10 +43,11 @@ for(const [name,like,grain,hal,bloom] of [["VELVIA","100D",.38,2.6,.07],["400H",
 // The Super 8 look, as chosen from three strengths shown side by side (the strongest): a soft picture (the small size and blur below),
 // twice the glow round lights, three and a half times the bloom, and blacks lifted off the floor to a milky dark grey.
 const LOOK={hal:2,bloom:3.5,lift:.05};
+const HALO={thr:.84,r:.42,k:2.4};                    // halation: how bright light must be to cause it, how far it reaches (share of the old glow), strength
 // Picture shapes. The long side follows the way the phone is held: 4:3 is upright 3:4 on an upright phone.
 const SHAPES={"1:1":1,"4:3":4/3,"16:9":16/9};
 const FORMATS={
-  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","400H","P400","GOLD","EKTAR","B&W","CINDRA","SOLANE","LAGRA","ROSEL","NOCTAR","UMBRIN","RUBRA","NOIRA"],pShort:380,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.75,halo:2.1,dsz:1.0,dmg:1.0},
+  s8: {name:"SUPER 8", aspect:4/3,fps:[9,12,18,24],stocks:["50D","100D","200T","250D","500T","K64","VELVIA","400H","P400","GOLD","EKTAR","B&W","CINDRA","SOLANE","LAGRA","ROSEL","NOCTAR","UMBRIN","RUBRA","NOIRA"],pShort:520,gs:1.15,grainMul:1.0, weave:1.0, vig:.58,vexp:.55,ca:.0035,corner:.034,strip:.15,edge:.036,soft:.45,halo:2.1,dsz:1.0,dmg:1.0},
   s16:{name:"SUPER 16",aspect:5/3,fps:[24,25],stocks:Object.keys(FILM_STOCKS),pShort:880,gs:.9,grainMul:.6,weave:.32,vig:.24,vexp:1.25,ca:.0014,corner:.012,strip:.13,edge:.030,soft:.55,halo:1.0,dsz:.65,dmg:.6},
   vhs:{name:"VHS",     aspect:4/3,fps:[25,30],stocks:Object.keys(TAPES),      pShort:480}
 };
@@ -75,7 +76,7 @@ const FILM_INFO={
   "NOIRA":["Hard black and white. Heavy grain",["#0c0c0c","#6a6a6a","#f0f0f0"]]};
 function filmStripes(el,name){const f=FILM_INFO[name];if(!f) return;f[1].forEach((c,i)=>el.style.setProperty("--s"+(i+1),c));}
 const S={grain:2,colour:0,move:true,format:"s8",stockBy:{s8:"200T",s16:"200T",vhs:"SP"},fpsBy:{s8:18,s16:24,vhs:25},ev:0,lock:false,
-  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video",lensLook:0,grainAmt:1,halAmt:1,bloomAmt:1,vigAmt:1,breathAmt:1,weaveAmt:1,dmgAmt:1,diffAmt:0,star:0,starAmt:1};
+  facing:"environment",overscan:false,side:0,filter:4,zoomSpeed:1,zoom:1,burn:true,lens:false,sound:true,light:false,filmSound:true,whirr:false,shape:"4:3",histo:false,grid:false,shoot:"video",lensLook:0,grainAmt:1,halAmt:1,bloomAmt:1,vigAmt:1,breathAmt:1,weaveAmt:1,dmgAmt:1,diffAmt:0,star:0,starAmt:1,smudgeAmt:0};
 Object.defineProperty(S,"stock",{get(){return S.stockBy[S.format];}});
 Object.defineProperty(S,"fps",{get(){return S.fpsBy[S.format];}});
 let mode="test";            // "test" | "live" | "clip" | "still" (still is for testing only)
@@ -100,18 +101,19 @@ try{
   if(saved.histo===true) S.histo=true;
   if(saved.grid===true) S.grid=true;
   if(saved.shoot==="photo") S.shoot="photo";
-  if(saved.lensLook===1||saved.lensLook===2) S.lensLook=saved.lensLook;
+  if(saved.lensLook===1) S.lensLook=1;            // the anamorphic look (2) is gone: it opens as clean
   if(saved.grainAmt>=0&&saved.grainAmt<=1) S.grainAmt=saved.grainAmt;
   if(saved.halAmt>=0&&saved.halAmt<=1) S.halAmt=saved.halAmt;
   for(const k of ["bloomAmt","vigAmt","breathAmt","weaveAmt","dmgAmt","starAmt"]) if(saved[k]>=0&&saved[k]<=2) S[k]=saved[k];
   if(saved.diffAmt>=0&&saved.diffAmt<=1) S.diffAmt=saved.diffAmt;
+  if(saved.smudgeAmt>=0&&saved.smudgeAmt<=1) S.smudgeAmt=saved.smudgeAmt;
   if(saved.star===4||saved.star===6) S.star=saved.star;
   if(saved.filmSound===false) S.filmSound=false;
   if(saved.whirr===true) S.whirr=true;
 }catch(e){}
 function remember(){
   try{localStorage.setItem("reel8v2",JSON.stringify({format:S.format,stockBy:S.stockBy,fpsBy:S.fpsBy,facing:S.facing,
-    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare2:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot,lensLook:S.lensLook,grainAmt:S.grainAmt,halAmt:S.halAmt,bloomAmt:S.bloomAmt,vigAmt:S.vigAmt,breathAmt:S.breathAmt,weaveAmt:S.weaveAmt,dmgAmt:S.dmgAmt,diffAmt:S.diffAmt,star:S.star,starAmt:S.starAmt}));}catch(e){}
+    overscan:S.overscan,side:S.side,filter:S.filter,zoomSpeed:S.zoomSpeed,filmFlare:S.burn,lensFlare2:S.lens,movement:S.move,colour:S.colour?"spektrafilm":"reel8",grainTry:S.grain,sound:S.sound,filmSound:S.filmSound,whirr:S.whirr,shape:S.shape,histo:S.histo,grid:S.grid,shoot:S.shoot,lensLook:S.lensLook,grainAmt:S.grainAmt,halAmt:S.halAmt,bloomAmt:S.bloomAmt,vigAmt:S.vigAmt,breathAmt:S.breathAmt,weaveAmt:S.weaveAmt,dmgAmt:S.dmgAmt,diffAmt:S.diffAmt,star:S.star,starAmt:S.starAmt,smudgeAmt:S.smudgeAmt}));}catch(e){}
 }
 
 /* ---------- toast ---------- */
@@ -205,11 +207,10 @@ vec4 hot(vec2 q){
 void main(){
   gl_FragColor=(hot(vUv+uPx*vec2(-1.,-1.))+hot(vUv+uPx*vec2(1.,-1.))+hot(vUv+uPx*vec2(-1.,1.))+hot(vUv+uPx*vec2(1.,1.)))*.25;
 }`;
-// 2d. lens look. Two old kinds of glass, drawn on the small picture before the film gets it (so the grain stays on top, as on real film).
-// uLm 1 "swirl": the middle stays sharp; outwards everything smears in a circle round the centre, the edges bulge a little,
-//   colours part slightly at the rim and the corners go dark.
-// uLm 2 "anamorphic": a squeezed cinema lens. Lines bow (more across than up and down), the left and right sides smear upwards,
-//   and every small bright light throws a long thin line sideways. The line keeps nearly no colour of its own.
+// 2d. lens look, drawn on the small picture before the film gets it (so the grain stays on top, as on real film).
+// "swirl": an old fast lens wide open. The middle is sharp. Away from the middle every point of light spreads into a small lemon shape
+//   lying along a circle round the centre, so the background seems to turn; bright points keep their shape instead of washing out,
+//   colours part slightly at the rim and the corners go a little dark.
 const FS_HOT2=COMMON+`uniform sampler2D uTex;uniform vec2 uPx;
 vec4 hot(vec2 q){
   vec3 c=texture2D(uTex,q).rgb;
@@ -220,7 +221,7 @@ vec4 hot(vec2 q){
 void main(){
   gl_FragColor=(hot(vUv+uPx*vec2(-1.,-1.))+hot(vUv+uPx*vec2(1.,-1.))+hot(vUv+uPx*vec2(-1.,1.))+hot(vUv+uPx*vec2(1.,1.)))*.25;
 }`;
-const FS_FX=COMMON+`uniform sampler2D uTex,uDiff,uRays,uHot;uniform float uDf,uSt;
+const FS_FX=COMMON+`uniform sampler2D uTex,uDiff,uRays,uHot,uSmH,uDirt;uniform float uDf,uSt,uSm,uAsp;
 void main(){
   vec3 c=texture2D(uTex,vUv).rgb;
   if(uDf>0.){                                        // a mist filter: light spreads softly out of the bright parts, and the darks lift a little
@@ -236,51 +237,44 @@ void main(){
     r=mix(vec3(dot(r,vec3(.3333))),r,.45);
     c+=r*uSt;
   }
+  if(uSm>0.){                                        // a dirty front glass: every speck of dust on it is far out of focus, so it shows as a pale round disc,
+    vec3 hz=texture2D(uSmH,vUv).rgb;                 // and only where bright light falls across the glass. In shade the dust cannot be seen.
+    vec2 q=(vUv-.5)*vec2(max(uAsp,1.),max(1./uAsp,1.))+.5;   // the glass is round: discs stay round on any picture shape
+    vec3 dt=texture2D(uDirt,q).rgb;
+    float l=dot(hz,vec3(.3333));
+    c=mix(c,c*.94+.02,uSm*.6);                       // the whole picture loses a little contrast
+    float g=l/(l+.02);                               // a small lamp far off still lights the dust near it; a whole bright sky does not blind the picture
+    vec3 x=min(mix(vec3(1.),hz/max(l,.002),.5)*g*(.05+1.15*dt)*uSm,vec3(.85));   // the dust takes the colour of the light, and a little of its own
+    c=1.-(1.-c)*(1.-x);                              // light laid over the picture: it can lift the darks a lot and the brights hardly at all
+  }
   gl_FragColor=vec4(c,1.);
 }`;
 const FX={len:[.005,.016,.052],gain:3.2,ang:{4:[.35,1.9208],6:[.2618,1.309,2.3562]}};   // ray lengths (three blurs, each longer), strength, and the angles of the rays
-const FS_LENS=COMMON+`uniform sampler2D uTex,uS1,uS2,uS3;uniform float uLm,uAmt,uAsp,uStreak;
-vec2 A,B;                                            // A: picture shape; B: turns the centred, round coordinates back into picture coordinates
-vec3 ca(vec2 d,vec2 f){                              // red a hair smaller, blue a hair bigger
-  return vec3(texture2D(uTex,d*(1.-f)*B+.5).r,texture2D(uTex,d*B+.5).g,texture2D(uTex,d*(1.+f)*B+.5).b);
-}
+const FS_LENS=COMMON+`uniform sampler2D uTex;uniform float uAmt,uAsp;
 void main(){
-  A=vec2(uAsp,1.);float Rn=length(A)*.5;B=Rn/A;
+  vec2 A=vec2(uAsp,1.);float Rn=length(A)*.5;vec2 B=Rn/A;   // A: picture shape; B: turns the centred, round coordinates back into picture coordinates
   vec2 d=(vUv-.5)*A/Rn;float r=length(d),r2=r*r;      // r is 1 in the corners
+  float m=pow(clamp((r-.36)/.64,0.,1.),1.35);          // nothing in the middle third, growing to the corners
+  vec2 p=d*(1.+.022*uAmt*(r2-1.));
+  vec2 n=d/max(r,1e-4),t=vec2(-n.y,n.x);
+  float T=.056*uAmt*m,Rr=T*.40;                        // the lemon: long along the circle, short towards the centre
   vec3 col=vec3(0.);float ws=0.;
-  if(uLm<1.5){
-    float m=pow(clamp((r-.34)/.66,0.,1.),1.5);
-    vec2 p=d*(1.+.054*uAmt*(r2-1.));
-    float f=.0105*uAmt*r2;
-    for(int i=0;i<13;i++){
-      float t=float(i)/6.-1.,a=t*.062*uAmt*m,c=cos(a),sn=sin(a);
-      float rs=1.+(mod(float(i),2.)*2.-1.)*.010*uAmt*m*(1.-abs(t)*.3);
-      float w=1.-.5*abs(t);
-      col+=w*ca(vec2(p.x*c-p.y*sn,p.x*sn+p.y*c)*rs,vec2(f));ws+=w;
-    }
-    col/=ws;
-    col*=pow(max(1.-.42*min(uAmt,1.6)*pow(min(r,1.),2.6),.02),.4545);
-  }else{
-    float ax=abs(vUv.x-.5)*2.,mx=pow(clamp((ax-.45)/.55,0.,1.),1.5);
-    vec2 p=vec2(d.x*(1.+.0765*uAmt*(r2-1.)),d.y*(1.+.027*uAmt*(r2-1.)));
-    vec2 f=vec2(.009*uAmt*ax*ax,0.);
-    float sg=.0146*uAmt*mx/Rn;
-    for(int i=0;i<9;i++){
-      float t=float(i)/4.-1.,w=exp(-2.*t*t);
-      col+=w*ca(p+vec2(0.,t*sg*2.),f);ws+=w;
-    }
-    col/=ws;
-    vec3 st=texture2D(uS1,vUv).rgb*.34+texture2D(uS2,vUv).rgb*.33+texture2D(uS3,vUv).rgb*.33;
-    float big=0.;                                    // how much of the whole picture is burnt out: lamps are small, a white sky is not, and a white sky gets no streaks
-    for(int j=0;j<5;j++)for(int k=0;k<5;k++) big+=dot(texture2D(uS3,vec2(.1+.2*float(k),.1+.2*float(j))).rgb,vec3(.3333));
-    st*=1.-smoothstep(.06,.22,big/25.);
-    st=mix(vec3(dot(st,vec3(.3333))),st,.25);
-    col+=st*uStreak;
-    col*=pow(max(1.-.30*uAmt*pow(min(r,1.),2.4),.02),.4545);
+  for(int i=0;i<19;i++){
+    float fi=float(i),rad=0.,a=0.;
+    if(i>6){rad=1.;a=(fi-7.)*.5236+.2618;}else if(i>0){rad=.52;a=(fi-1.)*1.0472;}
+    vec2 o=t*(cos(a)*rad*T)+n*(sin(a)*rad*Rr);
+    vec3 c=texture2D(uTex,(p+o)*B+.5).rgb;
+    float l=dot(c,vec3(.299,.587,.114)),w=1.+7.*l*l*l*l;   // bright points weigh more: they stay as shapes of light
+    col+=c*w;ws+=w;
   }
-  gl_FragColor=vec4(col,1.);
+  col/=ws;
+  float f=.0075*uAmt*r2;                              // red a hair smaller, blue a hair bigger
+  col.r+=texture2D(uTex,p*(1.-f)*B+.5).r-texture2D(uTex,p*B+.5).r;
+  col.b+=texture2D(uTex,p*(1.+f)*B+.5).b-texture2D(uTex,p*B+.5).b;
+  col*=pow(max(1.-.28*min(uAmt,1.6)*pow(min(r,1.),2.6),.02),.4545);
+  gl_FragColor=vec4(max(col,0.),1.);
 }`;
-const LENSLOOK={names:["Clean","Swirl","Anamorphic"],swirl:1.3,ana:1,streak:3.4,bloom:1.5};
+const LENSLOOK={names:["Clean","Swirl"],swirl:1.3,bloom:1.5};
 // how bright the scene is as a whole (8 x 8 samples)
 const FS_LUM=COMMON+`uniform sampler2D uTex;
 void main(){
@@ -328,12 +322,12 @@ void main(){
   gl_FragColor=vec4(sqrt(f/4.)+(h1(gl_FragCoord.xy+uSeedF)-.5)/255.,1.);
 }`;
 // 3a. film
-const FS_FILM=COMMON+`uniform sampler2D uP,uGlow,uNoise,uDustTex,uFlare;
+const FS_FILM=COMMON+`uniform sampler2D uP,uGlow,uHalo,uNoise,uDustTex,uFlare;
 uniform vec4 uDp[4],uDq[4],uSc[6],uSd[6],uLk,uLk2;
 uniform vec3 uLkWb;
 uniform vec2 uOut,uWeave,uOff1,uOff2;
 uniform vec3 uWb,uBlack,uWhite,uGam,uKc,uTone;uniform sampler2D uLut,uGrainTex;uniform float uLutOn,uLift,uGm,uGk,uGrho,uGskew;uniform vec4 uGrot;uniform vec2 uJit;
-uniform float uSeed,uEv,uSat,uK,uGrain,uGs,uHal,uBloom,uBw,uFlicker,uOver,uSide,uFmt,uVig,uCa,uCorner,uT,uE,uFl,uFlash,uDsz,uGain,uOff,uSh,uHd,uVexp;
+uniform float uSeed,uEv,uSat,uK,uGrain,uGs,uHal,uHalK,uBloom,uBw,uFlicker,uOver,uSide,uFmt,uVig,uCa,uCorner,uT,uE,uFl,uFlash,uDsz,uGain,uOff,uSh,uHd,uVexp;
 // second colour choice: look the colour up in a table (33 steps a side, laid out as 33 tiles in a row, one for each step of blue)
 vec3 lut3(vec3 c){
   c=clamp(c,0.,1.);float n=33.,b=c.b*(n-1.),b0=floor(b),b1=min(b0+1.,n-1.);
@@ -411,8 +405,12 @@ void main(){
   c=pow(c,vec3(2.2));
   vec3 gw=texture2D(uGlow,uv).rgb;gw*=gw;
   float gl1=dot(gw,vec3(.3,.5,.2));
-  float hm=exp(-dot(c,vec3(.3,.5,.2))*10.);
-  c+=mix(vec3(1.,.17,.045),vec3(.5),uBw)*gl1*uHal*hm+gw*uBloom;
+  // Halation: only light strong enough to go right through the film bounces off its back and comes up again, red, as a thin ring
+  // close round the lamp or the burnt-out edge. Ordinary bright things (a pale wall, a lit leaf) do not get one.
+  vec3 hw=texture2D(uHalo,uv).rgb;hw*=hw;
+  float hl=dot(hw,vec3(.3,.5,.2));
+  float hm=exp(-dot(c,vec3(.3,.5,.2))*6.);
+  c+=mix(vec3(1.,.17,.045),vec3(.5),uBw)*hl*uHal*uHalK*hm+gw*uBloom;
   if(uFl>.5){vec3 fl=texture2D(uFlare,uv).rgb;c+=fl*fl*4.;}      // lens flare is light in the lens: it goes through the film like the rest of the picture
   float vg=clamp(1.-uVig*pow(min(r2,1.),uVexp),0.,1.);
   c*=exp2(uEv)*uFlicker*vg*uFlash;
@@ -571,7 +569,7 @@ void main(){
   gl_FragColor=vec4(clamp(c,0.,1.),1.);
 }`;
 
-let glOK=false,PR={},srcTex=null,noiseTex=null,grainTex=null,dustTex=null,T={};
+let glOK=false,PR={},srcTex=null,noiseTex=null,grainTex=null,dustTex=null,smudgeTex=null,T={};
 function makeProg(fsSrc){
   const mk=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
     if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(s));return null;}return s;};
@@ -653,6 +651,33 @@ function makeGrainTex(){
   return t;
 }
 let dustCanvas=null;
+function makeSmudge(){
+  // What is on a dirty front glass, drawn once: dust seen far out of focus, as pale round discs of many sizes with a slightly brighter
+  // rim (a few large faint ones, many small ones, some with a little colour), tiny bright specks, and a few fine hairs and scratches.
+  // The lens pass lights them where bright light crosses the glass.
+  const N=512,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");
+  let sd=20261128;const rnd=(a,b)=>{sd=(sd*1664525+1013904223)>>>0;return a+(sd/4294967296)*(b-a);};   // the same glass every time
+  x.fillStyle="#000";x.fillRect(0,0,N,N);x.globalCompositeOperation="lighter";
+  const tint=v=>{const k=rnd(0,1),t=k<.62?[1,1,1]:k<.74?[1,.78,.7]:k<.86?[.7,.9,1]:k<.93?[.75,1,.8]:[1,.95,.65];return "rgb("+Math.round(v*t[0])+","+Math.round(v*t[1])+","+Math.round(v*t[2])+")";};
+  const disc=(cx,cy,r,v)=>{
+    const col=tint(v);x.fillStyle=col;x.beginPath();x.arc(cx,cy,r,0,6.2832);x.fill();
+    x.strokeStyle=col;x.globalAlpha=.7;x.lineWidth=Math.max(1,r*.09);x.beginPath();x.arc(cx,cy,r*.95,0,6.2832);x.stroke();x.globalAlpha=1;
+  };
+  for(let i=0;i<8;i++) disc(rnd(0,N),rnd(0,N),rnd(36,64),rnd(9,20));        // a few large, faint
+  for(let i=0;i<40;i++) disc(rnd(0,N),rnd(0,N),rnd(12,32),rnd(12,36));      // middling
+  for(let i=0;i<130;i++){const k=rnd(0,1);disc(rnd(0,N),rnd(0,N),rnd(3,9),rnd(22,60)*(k<.2?1.6:1));}   // many small, some bright
+  for(let i=0;i<240;i++){const v=Math.round(rnd(60,210));x.fillStyle="rgb("+v+","+v+","+v+")";x.beginPath();x.arc(rnd(0,N),rnd(0,N),rnd(.5,1.4),0,6.2832);x.fill();}   // specks
+  x.lineCap="round";
+  for(let i=0;i<16;i++){                             // hairs and fine scratches: short, slightly bent
+    const x0=rnd(0,N),y0=rnd(0,N),a=rnd(0,6.2832),L=rnd(8,42),v=Math.round(rnd(60,150));
+    x.strokeStyle="rgb("+v+","+v+","+v+")";x.lineWidth=rnd(.6,1.3);x.beginPath();x.moveTo(x0,y0);
+    x.quadraticCurveTo(x0+Math.cos(a)*L*.5+rnd(-5,5),y0+Math.sin(a)*L*.5+rnd(-5,5),x0+Math.cos(a)*L,y0+Math.sin(a)*L);x.stroke();
+  }
+  const t=makeTex(true);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);
+  return t;
+}
 function makeDust(){
   // One sheet of 32 small light marks (hairs, specks, lint), drawn once; the film shader stamps a few of them on each frame.
   // Drawn large and shrunk by the graphics chip, so even hair-thin lines stay smooth. The colour of each mark is stored with it.
@@ -1030,27 +1055,30 @@ function develop(now){
     // pass 2: soften the picture (real small-gauge film is far softer than a phone)
     let Ps=Pt;                                         // the picture the film gets: straight from the camera, or through one of the old lenses
     if(S.lensLook){
-      if(!PR.lens){PR.lens=makeProg(FS_LENS);PR.hot2=makeProg(FS_HOT2);}
-      if(PR.lens&&PR.hot2){
-        const PL=target("PL",pw,ph);                  // made before any texture is put on units 1 to 3: making one leaves it on the unit in use
-        if(S.lensLook===2){
-          const sw=Math.max(16,pw>>2),sh=Math.max(16,ph>>1),H=target("SH",sw,sh),S1=target("S1",sw,sh),S2=target("S2",sw,sh),S3=target("S3",sw,sh);
-          bind(0,Pt.tex);use(PR.hot2,{uTex:{tex:0},uPx:[1/pw,1/ph]});draw(H);
-          bind(0,H.tex);use(PR.blur,{uTex:{tex:0},uDir:[.025/1.75,0],uThr:0});draw(S1);
-          bind(0,S1.tex);use(PR.blur,{uTex:{tex:0},uDir:[.07/1.75,0],uThr:0});draw(S2);
-          bind(0,S2.tex);use(PR.blur,{uTex:{tex:0},uDir:[.19/1.75,0],uThr:0});draw(S3);
-          bind(1,S1.tex);bind(2,S2.tex);bind(3,S3.tex);
-        }else{bind(1,noiseTex);bind(2,noiseTex);bind(3,noiseTex);}
-        bind(0,Pt.tex);use(PR.lens,{uTex:{tex:0},uS1:{tex:1},uS2:{tex:2},uS3:{tex:3},uLm:S.lensLook,uAmt:S.lensLook===1?LENSLOOK.swirl:LENSLOOK.ana,uAsp:pw/ph,uStreak:S.lensLook===2?LENSLOOK.streak:0});draw(PL);
+      if(!PR.lens) PR.lens=makeProg(FS_LENS);
+      if(PR.lens){
+        const PL=target("PL",pw,ph);
+        bind(0,Pt.tex);use(PR.lens,{uTex:{tex:0},uAmt:LENSLOOK.swirl,uAsp:pw/ph});draw(PL);
         Ps=PL;
       }
     }
     const starOn=S.star&&S.starAmt>0;
-    if(S.diffAmt>0||starOn){
+    const smOn=S.smudgeAmt>0;
+    if(S.diffAmt>0||starOn||smOn){
       if(!PR.fx){PR.fx=makeProg(FS_FX);if(!PR.hot2) PR.hot2=makeProg(FS_HOT2);}
       if(PR.fx&&PR.hot2){
         const PX=target("PX",pw,ph),dw=Math.max(16,pw>>2),dh=Math.max(16,ph>>2),DA=target("DA",dw,dh),DB=target("DB",dw,dh),
-          sw=Math.max(16,pw>>1),sh=Math.max(16,ph>>1),HS=target("HS",sw,sh),R1=target("R1",sw,sh),R2=target("R2",sw,sh),R3=target("R3",sw,sh),RA=target("RA",sw,sh);
+          sw=Math.max(16,pw>>1),sh=Math.max(16,ph>>1),HS=target("HS",sw,sh),R1=target("R1",sw,sh),R2=target("R2",sw,sh),R3=target("R3",sw,sh),RA=target("RA",sw,sh),
+          MA=target("MA",dw,dh),MB=target("MB",dw,dh);
+        if(smOn){
+          if(!smudgeTex) smudgeTex=makeSmudge();
+          bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[.007,0],uThr:.50});draw(MA);          // a wide glow out of the brighter parts
+          bind(0,MA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,.007*pw/ph],uThr:0});draw(MB);
+          bind(0,MB.tex);use(PR.blur,{uTex:{tex:0},uDir:[.022,0],uThr:0});draw(MA);
+          bind(0,MA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,.022*pw/ph],uThr:0});draw(MB);
+          bind(0,MB.tex);use(PR.blur,{uTex:{tex:0},uDir:[.045,0],uThr:0});draw(MA);
+          bind(0,MA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,.045*pw/ph],uThr:0});draw(MB);
+        }
         if(S.diffAmt>0){                               // a wide, soft copy of the picture
           bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[.0055,0],uThr:0});draw(DA);
           bind(0,DA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,.0055*pw/ph],uThr:0});draw(DB);
@@ -1072,7 +1100,8 @@ function develop(now){
           }
         }
         bind(1,S.diffAmt>0?DB.tex:noiseTex);bind(2,starOn?RA.tex:noiseTex);bind(3,starOn?HS.tex:noiseTex);
-        bind(0,Ps.tex);use(PR.fx,{uTex:{tex:0},uDiff:{tex:1},uRays:{tex:2},uHot:{tex:3},uDf:S.diffAmt,uSt:starOn?S.starAmt*FX.gain/3:0});draw(PX);
+        bind(4,smOn?MB.tex:noiseTex);bind(6,smOn?smudgeTex:noiseTex);
+        bind(0,Ps.tex);use(PR.fx,{uTex:{tex:0},uDiff:{tex:1},uRays:{tex:2},uHot:{tex:3},uSmH:{tex:4},uDirt:{tex:6},uAsp:pw/ph,uDf:S.diffAmt,uSt:starOn?S.starAmt*FX.gain/3:0,uSm:S.smudgeAmt});draw(PX);
         Ps=PX;
       }
     }
@@ -1083,6 +1112,10 @@ function develop(now){
     const gw=Math.max(16,pw>>1),gh=Math.max(16,ph>>1),A=target("GA",gw,gh),B=target("GB",gw,gh),hs=F.halo*gw/300;
     bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[hs/gw,0],uThr:.38});draw(A);
     bind(0,A.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,hs/gh],uThr:0});draw(B);
+    // pass 3b: halation, from what is burnt out only, and kept close to it
+    const HA=target("HA",gw,gh),HB=target("HB",gw,gh),h2=hs*HALO.r;
+    bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[h2/gw,0],uThr:HALO.thr});draw(HA);
+    bind(0,HA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,h2/gh],uThr:0});draw(HB);
     // pass 4: lens flare from the lamps and the sun in the picture
     const hasFl=S.lens&&LF.ok&&lensFlarePass(Ps,pw,ph,F.pShort);
     // film movement, flare and damage that carry from frame to frame
@@ -1090,8 +1123,8 @@ function develop(now){
     rollDamage(F.dmg*S.dmgAmt);rollFilmFlare();
     if(dmgHook) dmgHook(SCRP,SCRQ,DUSTP,DUSTQ);
     const wv=F.weave*S.weaveAmt;
-    bind(0,PB.tex);bind(1,B.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);bind(5,lt||noiseTex);bind(6,grainTex);const GM=GRAIN[S.grain]||GRAIN[2],gpx=Math.min(cv.width,cv.height)/1080;
-    const U={uP:{tex:0},uGlow:{tex:1},uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:lt?f:st.wb,uFlash:FLR.mul,uLut:{tex:5},uLutOn:lt?1:0,uGrainTex:{tex:6},uGm:S.grain,uGk:GM.k,uGrho:GM.rho||1,uGskew:GM.skew||0,uGrot:ROT[(R()*8)|0],uJit:[(GM.jit||0)*st.grain*F.grainMul*10.64*gpx/cv.width,(GM.jit||0)*st.grain*F.grainMul*10.64*gpx/cv.height],
+    bind(0,PB.tex);bind(1,B.tex);bind(7,HB.tex);bind(2,noiseTex);bind(3,dustTex);bind(4,hasFl?T.FL.tex:noiseTex);bind(5,lt||noiseTex);bind(6,grainTex);const GM=GRAIN[S.grain]||GRAIN[2],gpx=Math.min(cv.width,cv.height)/1080;
+    const U={uP:{tex:0},uGlow:{tex:1},uHalo:{tex:7},uHalK:HALO.k,uNoise:{tex:2},uDustTex:{tex:3},uFlare:{tex:4},uFl:hasFl?1:0,uLk:FLR.LK,uLk2:FLR.LK2,uLkWb:lt?f:st.wb,uFlash:FLR.mul,uLut:{tex:5},uLutOn:lt?1:0,uGrainTex:{tex:6},uGm:S.grain,uGk:GM.k,uGrho:GM.rho||1,uGskew:GM.skew||0,uGrot:ROT[(R()*8)|0],uJit:[(GM.jit||0)*st.grain*F.grainMul*10.64*gpx/cv.width,(GM.jit||0)*st.grain*F.grainMul*10.64*gpx/cv.height],
       uDp:DUSTP,uDq:DUSTQ,uSc:SCRP,uSd:SCRQ,uDsz:F.dsz,uOut:[cv.width,cv.height],
       uWeave:[((R()-.5)*.0012+Math.sin(now/1100)*.0006)*wv,((R()-.5)*.0014+Math.sin(now/700)*.0008)*wv],
       uOff1:off1,uOff2:off2,uWb:lt?f:[st.wb[0]*f[0],st.wb[1]*f[1],st.wb[2]*f[2]],uBlack:st.black,uWhite:st.white,
@@ -1194,7 +1227,7 @@ function tick(now){requestAnimationFrame(tick);if(!MV.manual) step(now);}
 /* ---------- the two sliders on the picture ---------- */
 // zoomGoal is where the zoom slider was put; the zoom glides there instead of jumping (a real zoom ring has weight).
 let zoomGoal=null,fadeSeen="";
-const RUL=[["starAmt","star strength",2,1,"look"],["diffAmt","diffusion",1,0,"look"],["bloomAmt","bloom",2,1,"look"],["halAmt","halation",1,1,"look"],["grainAmt","grain",1,1,"look"],["vigAmt","dark corners",2,1,"wear"],["breathAmt","flicker",2,1,"wear"],["weaveAmt","wobble",2,1,"wear"],["dmgAmt","dust",2,1,"wear"],["filter","colour filter",8,4,"more"]];
+const RUL=[["starAmt","star strength",2,1,"look"],["diffAmt","diffusion",1,0,"look"],["bloomAmt","bloom",2,1,"look"],["halAmt","halation",1,1,"look"],["grainAmt","grain",1,1,"look"],["vigAmt","dark corners",2,1,"wear"],["breathAmt","flicker",2,1,"wear"],["weaveAmt","wobble",2,1,"wear"],["dmgAmt","dust",2,1,"wear"],["smudgeAmt","lens smudge",1,0,"wear"],["filter","colour filter",8,4,"more"]];
 function syncRulers(){
   for(const [k,nm,max] of RUL){
     const el=$("r_"+k);if(!el) continue;const v=S[k],val=el.querySelector(".val");
@@ -1223,7 +1256,10 @@ function buildRulers(){
 let LOOKS=[];
 const LOOKKEYS=["lensLook","star"].concat(RUL.map(r=>r[0]));
 function lookOk(l){
-  if(!l||!FORMATS.s8.stocks.includes(l.stock)||![0,1,2].includes(l.lensLook)||![0,4,6].includes(l.star)) return false;
+  if(!l) return false;
+  if(l.lensLook===2) l.lensLook=0;                    // a look saved with the anamorphic lens, which is gone: it keeps everything else
+  if(l.smudgeAmt===undefined) l.smudgeAmt=0;         // a look saved before lens smudge existed
+  if(!FORMATS.s8.stocks.includes(l.stock)||![0,1].includes(l.lensLook)||![0,4,6].includes(l.star)) return false;
   for(const [k,nm,max] of RUL) if(!(typeof l[k]==="number"&&l[k]>=0&&l[k]<=max)||(k==="filter"&&l[k]!==Math.round(l[k]))) return false;
   return true;
 }
@@ -2150,7 +2186,7 @@ if(!FRAMED&&"serviceWorker" in navigator&&(location.protocol==="https:"||locatio
 $("homeNote").hidden=!(IS_IOS&&!STANDALONE&&!FRAMED);
 if(FRAMED) showCard(false);
 else startLive(true).then(ok=>{if(!ok&&mode==="test") showCard(false);});
-window.__reel8={FX,RUL,NAMES,nameOf,get LOOKS(){return LOOKS;},useLook,labBoard,showBoard,syncRulers,LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
+window.__reel8={FX,HALO,LENSLOOK,RUL,NAMES,nameOf,get LOOKS(){return LOOKS;},useLook,labBoard,showBoard,syncRulers,LOOK,STANDALONE,reviveCamera,S,dyn,FILM_STOCKS,FORMATS,FILTERS,ACTIVE,stepStock,LF,FLR,MV,CZ,startFilmFlare,step,camFrame,mvReset,CLEAN,LUT,loadLuts,GRAIN,TH,LENS,SHAPES,filmSheet,refreshLenses,useLens,SND,sndGraph,sndSet,get recKinds(){return rec&&rec.stream?rec.stream.getTracks().map(t=>t.kind).sort().join():"";},nominalRate,rateFits,groupStart,shutterWeight,
   get locked(){return MV.locked;},get status(){return $("camStatus").textContent;},
   blendTest(els,shares){srcAspect=els[0].naturalWidth/els[0].naturalHeight;beginFrame(srcAspect);let ws=0;els.forEach((e,i)=>{expose(e,shares[i]/(ws+shares[i]));ws+=shares[i];});develop(performance.now());},dustSheet(){return dustCanvas?dustCanvas.toDataURL("image/png"):null;},get mode(){return mode;},get frames(){return frames;},clips,loadClip,paint,buildStocks,
   still(el){stillEl=el;mode="still";card(false);},snap(){return new Promise(r=>{snapCb=r;});},

@@ -54,4 +54,10 @@ The typeface is Outfit (SIL Open Font Licence), built into the page. VT323 and S
 
 Zoom uses the phone's own zoom wherever the browser offers it, so a zoomed picture stays sharp; anything the phone cannot do is made up by enlarging the picture. The last line in About says which is in use. Adding `?camzoom=0` to the address switches the phone's zoom off, for comparing.
 
-Lens look (in the lab): Clean, Swirl or Anamorphic. Swirl keeps the middle sharp and smears the edges in a circle round the centre, with a glow, a slight bulge and dark corners. Anamorphic bows straight lines a little, softens the left and right sides, and makes every small bright light throw a long, nearly colourless line sideways. Both are drawn before the film look, so the grain stays on top. They work on the edges of the picture; they cannot blur a background behind a subject.
+Lens look (in the lab): Clean or Swirl. Swirl is an old fast lens wide open: the middle stays sharp, and towards the edges every point of light spreads into a small lemon shape lying along a circle round the centre, so the background seems to turn; bright points keep their shape, colours part slightly at the rim and the corners go a little dark. It is drawn before the film look, so the grain stays on top. It works on the edges of the picture; it cannot blur a background behind a subject.
+
+Halation is the thin red ring that film shows round light strong enough to pass through it and bounce off its back. Only burnt-out light causes it (a lamp, the sun, a white sky behind leaves); ordinary bright things do not.
+
+Lens smudge (a ruler in the lab, under wear, off to begin with): dust on the front glass, far out of focus, as pale round discs, specks and fine hairs that show only where bright light crosses the glass.
+
+The Super 8 picture is worked out 520 points on its short side, with a light blur for the softness of small film.
