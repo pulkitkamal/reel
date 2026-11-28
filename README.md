@@ -58,6 +58,6 @@ Lens look (in the lab): Clean or Swirl. Swirl is an old fast lens wide open: the
 
 Halation is the thin red ring that film shows round light strong enough to pass through it and bounce off its back. Only burnt-out light causes it (a lamp, the sun, a white sky behind leaves); ordinary bright things do not.
 
-Lens smudge (a ruler in the lab, under wear, off to begin with): dust on the front glass, far out of focus, as pale round discs, specks and fine hairs that show only where bright light crosses the glass.
+Lens smudge (a ruler in the lab, under wear, off to begin with): dust on the front glass, far out of focus, as pale discs and specks that show only where bright light crosses the glass. The dirt itself is two pictures supplied by Pulkit, laid together and kept inside the page.
 
 The Super 8 picture is worked out 520 points on its short side, with a light blur for the softness of small film.

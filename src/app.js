@@ -237,14 +237,16 @@ void main(){
     r=mix(vec3(dot(r,vec3(.3333))),r,.45);
     c+=r*uSt;
   }
-  if(uSm>0.){                                        // a dirty front glass: every speck of dust on it is far out of focus, so it shows as a pale round disc,
+  if(uSm>0.){                                        // a dirty front glass: dust and smears on it are far out of focus, so they show as pale discs and haze,
     vec3 hz=texture2D(uSmH,vUv).rgb;                 // and only where bright light falls across the glass. In shade the dust cannot be seen.
-    vec2 q=(vUv-.5)*vec2(max(uAsp,1.),max(1./uAsp,1.))+.5;   // the glass is round: discs stay round on any picture shape
-    vec3 dt=texture2D(uDirt,q).rgb;
+    vec2 q=vUv-.5;float a=uAsp;                      // the dirt picture is 16 by 9. It is laid over the whole frame without stretching:
+    if(a<1.){q=vec2(q.y,-q.x);a=1./a;}               // turned on its side for an upright frame, and cut at the sides where the shapes differ
+    if(a<1.7778) q.x*=a/1.7778; else q.y*=1.7778/a;
+    vec3 dt=texture2D(uDirt,q+.5).rgb;
     float l=dot(hz,vec3(.3333));
     c=mix(c,c*.94+.02,uSm*.6);                       // the whole picture loses a little contrast
     float g=l/(l+.02);                               // a small lamp far off still lights the dust near it; a whole bright sky does not blind the picture
-    vec3 x=min(mix(vec3(1.),hz/max(l,.002),.5)*g*(.05+1.15*dt)*uSm,vec3(.85));   // the dust takes the colour of the light, and a little of its own
+    vec3 x=min(mix(vec3(1.),hz/max(l,.002),.5)*g*(.04+1.0*dt)*uSm,vec3(.85));   // the dust takes the colour of the light, and a little of its own
     c=1.-(1.-c)*(1.-x);                              // light laid over the picture: it can lift the darks a lot and the brights hardly at all
   }
   gl_FragColor=vec4(c,1.);
@@ -651,32 +653,18 @@ function makeGrainTex(){
   return t;
 }
 let dustCanvas=null;
-function makeSmudge(){
-  // What is on a dirty front glass, drawn once: dust seen far out of focus, as pale round discs of many sizes with a slightly brighter
-  // rim (a few large faint ones, many small ones, some with a little colour), tiny bright specks, and a few fine hairs and scratches.
-  // The lens pass lights them where bright light crosses the glass.
-  const N=512,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");
-  let sd=20261128;const rnd=(a,b)=>{sd=(sd*1664525+1013904223)>>>0;return a+(sd/4294967296)*(b-a);};   // the same glass every time
-  x.fillStyle="#000";x.fillRect(0,0,N,N);x.globalCompositeOperation="lighter";
-  const tint=v=>{const k=rnd(0,1),t=k<.62?[1,1,1]:k<.74?[1,.78,.7]:k<.86?[.7,.9,1]:k<.93?[.75,1,.8]:[1,.95,.65];return "rgb("+Math.round(v*t[0])+","+Math.round(v*t[1])+","+Math.round(v*t[2])+")";};
-  const disc=(cx,cy,r,v)=>{
-    const col=tint(v);x.fillStyle=col;x.beginPath();x.arc(cx,cy,r,0,6.2832);x.fill();
-    x.strokeStyle=col;x.globalAlpha=.7;x.lineWidth=Math.max(1,r*.09);x.beginPath();x.arc(cx,cy,r*.95,0,6.2832);x.stroke();x.globalAlpha=1;
-  };
-  for(let i=0;i<8;i++) disc(rnd(0,N),rnd(0,N),rnd(36,64),rnd(9,20));        // a few large, faint
-  for(let i=0;i<40;i++) disc(rnd(0,N),rnd(0,N),rnd(12,32),rnd(12,36));      // middling
-  for(let i=0;i<130;i++){const k=rnd(0,1);disc(rnd(0,N),rnd(0,N),rnd(3,9),rnd(22,60)*(k<.2?1.6:1));}   // many small, some bright
-  for(let i=0;i<240;i++){const v=Math.round(rnd(60,210));x.fillStyle="rgb("+v+","+v+","+v+")";x.beginPath();x.arc(rnd(0,N),rnd(0,N),rnd(.5,1.4),0,6.2832);x.fill();}   // specks
-  x.lineCap="round";
-  for(let i=0;i<16;i++){                             // hairs and fine scratches: short, slightly bent
-    const x0=rnd(0,N),y0=rnd(0,N),a=rnd(0,6.2832),L=rnd(8,42),v=Math.round(rnd(60,150));
-    x.strokeStyle="rgb("+v+","+v+","+v+")";x.lineWidth=rnd(.6,1.3);x.beginPath();x.moveTo(x0,y0);
-    x.quadraticCurveTo(x0+Math.cos(a)*L*.5+rnd(-5,5),y0+Math.sin(a)*L*.5+rnd(-5,5),x0+Math.cos(a)*L,y0+Math.sin(a)*L);x.stroke();
-  }
-  const t=makeTex(true);
+// Lens smudge: the dirt on the front glass is a picture (SMUDGE_IMG). It is read once, the first time the smudge is turned up,
+// and handed to the graphics chip between two passes of a frame, where no other texture can be disturbed.
+let smudgeImg=null;
+setTimeout(()=>{if(!smudgeImg){smudgeImg=new Image();smudgeImg.src=SMUDGE_IMG;}},1200);   // read ahead of time, once the camera is up, so the ruler answers at once
+function smudgeReady(){
+  if(smudgeTex) return true;
+  if(!smudgeImg){smudgeImg=new Image();smudgeImg.src=SMUDGE_IMG;return false;}
+  if(!smudgeImg.complete||!smudgeImg.naturalWidth) return false;
+  smudgeTex=makeTex(false);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);
-  return t;
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,smudgeImg);
+  return true;
 }
 function makeDust(){
   // One sheet of 32 small light marks (hairs, specks, lint), drawn once; the film shader stamps a few of them on each frame.
@@ -1063,7 +1051,7 @@ function develop(now){
       }
     }
     const starOn=S.star&&S.starAmt>0;
-    const smOn=S.smudgeAmt>0;
+    const smOn=S.smudgeAmt>0&&smudgeReady();
     if(S.diffAmt>0||starOn||smOn){
       if(!PR.fx){PR.fx=makeProg(FS_FX);if(!PR.hot2) PR.hot2=makeProg(FS_HOT2);}
       if(PR.fx&&PR.hot2){
@@ -1071,7 +1059,6 @@ function develop(now){
           sw=Math.max(16,pw>>1),sh=Math.max(16,ph>>1),HS=target("HS",sw,sh),R1=target("R1",sw,sh),R2=target("R2",sw,sh),R3=target("R3",sw,sh),RA=target("RA",sw,sh),
           MA=target("MA",dw,dh),MB=target("MB",dw,dh);
         if(smOn){
-          if(!smudgeTex) smudgeTex=makeSmudge();
           bind(0,Ps.tex);use(PR.blur,{uTex:{tex:0},uDir:[.007,0],uThr:.50});draw(MA);          // a wide glow out of the brighter parts
           bind(0,MA.tex);use(PR.blur,{uTex:{tex:0},uDir:[0,.007*pw/ph],uThr:0});draw(MB);
           bind(0,MB.tex);use(PR.blur,{uTex:{tex:0},uDir:[.022,0],uThr:0});draw(MA);
